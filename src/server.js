@@ -18,9 +18,9 @@ if (isNaN(port)) {
 // Require app
 const app = require('./app');
 
-app.get('/', (req, res) => {
-  res.send('Hello World!');
-});
+// User routers
+const usersRouter = require('./app/routes/users');
+app.use('/api/v1/users', usersRouter);
 
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
