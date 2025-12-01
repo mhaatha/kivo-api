@@ -21,4 +21,5 @@ export const auth = betterAuth({
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     },
   },
+  basePath: '/api/v1/auth',
 });
