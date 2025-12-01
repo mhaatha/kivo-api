@@ -1,6 +1,7 @@
 import { betterAuth } from 'better-auth';
 import { MongoClient } from 'mongodb';
 import { mongodbAdapter } from 'better-auth/adapters/mongodb';
+import { openAPI } from 'better-auth/plugins';
 
 const client = new MongoClient(process.env.MONGODB_URI);
 const db = client.db();
@@ -22,4 +23,5 @@ export const auth = betterAuth({
     },
   },
   basePath: '/api/v1/auth',
+  plugins: [openAPI()],
 });
