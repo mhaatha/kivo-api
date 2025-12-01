@@ -1,22 +1,36 @@
 # kivo-api
 API for Kivo hackathon project by IMPHNEN (Ingin Menjadi Programmer Handal Namun Enggan Ngoding)
 
-## Enabling MongoDB ACID Transactions
+## Prerequisites
 
-To enable ACID features in MongoDB, you must run MongoDB as a **replica set**, even if it's a single-node setup.
+- Node.js (Latest LTS)
+- Docker & Docker Compose
 
-### Steps
+## Database Setup (MongoDB Replica Set)
 
-1. Start the services:
+This project uses the **Better Auth** feature, which requires **ACID Transactions** support. Therefore, MongoDB must be run in **Replica Set** mode.
 
-```bash
-docker compose up -d
-```
+Follow these steps to run the database:
 
-2. Initialize the replica set:
+1. **Run the Container**
+   Run MongoDB using Docker Compose:
+   ```bash
+   docker compose up -d
+   ```
+2. **Replica Set initialization**
+   Once the container is running, run the following command to enable the transaction feature:
+   ```bash
+   docker exec -it kivo-mongo mongosh --eval "rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'localhost:27017' }] })"
+   ```
+If the output displays { "ok" : 1 }, it means the database setup was successful.
 
-```bash
-docker exec -it kivo-mongo mongosh --eval "rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'localhost:27017' }] })"
-```
-
-Once the replica set is active, full ACID transactions will be available for your MongoDB operations.
+## Installation & Running
+1. **Install Dependencies**
+   ```bash
+   npm install
+   ```
+2. **Setup Environment Variables: Copy .env.example to .env and adjust the contents.**
+3. **Run the development server:**
+   ```bash
+   npm run dev
+   ```
