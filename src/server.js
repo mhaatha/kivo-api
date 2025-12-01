@@ -1,28 +1,27 @@
-// src/server.js
-
-// 1. Load .env file
+// Load .env file
 const dotenv = require('dotenv');
 dotenv.config();
 
-// 2. Validasi dan Pengambilan PORT
-const port = process.env.PORT || 3000;
-const numericPort = parseInt(port, 10);
+// PORT env section
+const port = process.env.PORT;
 
-if (isNaN(numericPort) || numericPort <= 0) {
-    console.error(`❌ Error: PORT '${port}' must be a valid positive number.`);
-    process.exit(1);
+if (!port) {
+  console.error('error: PORT environment variable is missing.');
+  process.exit(1);
 }
 
-// 3. Require App
-const app = require('./app/index'); 
+if (isNaN(port)) {
+  console.error('error: PORT must be a number.');
+  process.exit(1);
+}
 
-// 4. User routers
+// Require app
+const app = require('./app');
+
+// User routers
 const usersRouter = require('./app/routes/users');
 app.use('/api/v1/users', usersRouter);
 
-
-
-// 5. Start Server (Hanya dijalankan jika PRINT_ROUTES BUKAN 'true')
-app.listen(numericPort, () => {
-    console.log(`✅ Server is running on port ${numericPort}`);
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
 });
