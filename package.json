@@ -22,7 +22,8 @@
   },
   "dependencies": {
     "better-auth": "^1.4.3",
-    "express": "^5.1.0"
+    "express": "^5.1.0",
+    "mongodb": "^7.0.0"
   },
   "devDependencies": {
     "dotenv": "^17.2.3",
