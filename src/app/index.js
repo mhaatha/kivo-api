@@ -5,9 +5,6 @@ import { auth } from './utils/auth.js';
 
 const app = express();
 
-// Mount Better Auth handler
-app.all('/api/v1/auth/*splat', toNodeHandler(auth));
-
 // Configure CORS middleware
 app.use(
   cors({
@@ -16,6 +13,9 @@ app.use(
     credentials: true,
   }),
 );
+
+// Mount Better Auth handler
+app.all('/api/v1/auth/*splat', toNodeHandler(auth));
 
 // Middleware JSON parser
 // It helps the app read JSON data sent from the client
