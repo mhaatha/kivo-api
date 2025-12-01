@@ -1,5 +1,7 @@
-// Load .env file
-const dotenv = require('dotenv');
+import dotenv from 'dotenv';
+import app from './app/index.js';
+import usersRouter from './app/routes/users.js';
+
 dotenv.config();
 
 // PORT env section
@@ -15,11 +17,6 @@ if (isNaN(port)) {
   process.exit(1);
 }
 
-// Require app
-const app = require('./app');
-
-// User routers
-const usersRouter = require('./app/routes/users');
 app.use('/api/v1/users', usersRouter);
 
 app.listen(port, () => {

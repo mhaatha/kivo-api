@@ -1,4 +1,5 @@
-const express = require('express');
+import express from 'express';
+
 const app = express();
 
 // Middleware JSON parser
@@ -6,4 +7,4 @@ const app = express();
 // and makes it available in req.body
 app.use(express.json());
 
-module.exports = app;
+export default app;
