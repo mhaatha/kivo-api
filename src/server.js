@@ -20,33 +20,7 @@ const app = require('./app/index');
 const usersRouter = require('./app/routes/users');
 app.use('/api/v1/users', usersRouter);
 
-// --- KODE PENCETAKAN TERTANAM (FINAL STABLE VERSION) ---
 
-if (process.env.PRINT_ROUTES === 'true') {
-    console.log('----------------------------------------------------');
-    console.log('         ✅ DAFTAR ENDPOINT KIVO API ✅');
-    console.log('----------------------------------------------------');
-    console.log('| METHOD   | PATH');
-    console.log('----------------------------------------------------');
-
-    // Karena app._router.stack bermasalah, kita looping LANGSUNG pada usersRouter
-    usersRouter.stack.forEach(layer => {
-        if (layer.route) {
-            const methods = Object.keys(layer.route.methods).join(', ').toUpperCase();
-            // Prefix harus ditambahkan secara manual
-            const path = '/api/v1/users' + layer.route.path; 
-            console.log(`| ${methods.padEnd(8)} | ${path}`);
-        }
-    });
-
-    console.log('----------------------------------------------------');
-    
-    // Matikan proses secara paksa agar tidak menjalankan server
-    setTimeout(() => {
-        console.log("Proses pencetakan route selesai. Mematikan server.");
-        process.exit(0); 
-    }, 500); // Delay singkat untuk memastikan output tercetak
-}
 
 // 5. Start Server (Hanya dijalankan jika PRINT_ROUTES BUKAN 'true')
 app.listen(numericPort, () => {

@@ -11,7 +11,7 @@ app.use('/api/v1/users', usersRouter);
 // --- 2. Fungsi Pencetak Manual ---
 function printRouteList(router, prefix) {
     console.log('----------------------------------------------------');
-    console.log('         ✅ DAFTAR ENDPOINT KIVO API ✅');
+    console.log('         DAFTAR ENDPOINT KIVO API');
     console.log('----------------------------------------------------');
     console.log('| METHOD   | PATH');
     console.log('----------------------------------------------------');
@@ -30,7 +30,6 @@ function printRouteList(router, prefix) {
 
 
 // --- 3. Eksekusi dan Keluar ---
-// Kita hanya mencetak route dari usersRouter (metode yang terbukti stabil)
 printRouteList(usersRouter, '/api/v1/users');
 
 // Matikan proses karena ini adalah script utility dan harus keluar segera.
