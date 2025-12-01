@@ -10,4 +10,14 @@ async function greetUser(req, res) {
   }
 }
 
-module.exports = { greetUser };
+async function greetLogin(req, res) {
+  try {
+    // const sayHi = await greetUser()
+
+    res.send('Hello Login!');
+  } catch (err) {
+    res.status(500).send(err);
+  }
+}
+
+module.exports = { greetUser, greetLogin };
