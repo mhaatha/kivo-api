@@ -1,6 +1,6 @@
-// const { greetUser } = require('../services/users.js')
+// import { greetUser } from '../services/users.js';
 
-async function greetUser(req, res) {
+export async function greetUser(req, res) {
   try {
     // const sayHi = await greetUser()
 
@@ -10,7 +10,7 @@ async function greetUser(req, res) {
   }
 }
 
-async function greetLogin(req, res) {
+export async function greetLogin(req, res) {
   try {
     // const sayHi = await greetUser()
 
@@ -19,5 +19,3 @@ async function greetLogin(req, res) {
     res.status(500).send(err);
   }
 }
-
-module.exports = { greetUser, greetLogin };
