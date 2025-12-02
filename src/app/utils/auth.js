@@ -24,5 +24,4 @@ export const auth = betterAuth({
   },
   basePath: '/api/v1/auth',
   plugins: [openAPI()],
-  trustedOrigins: ['*'],
 });
