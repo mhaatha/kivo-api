@@ -1,10 +1,13 @@
 import express from 'express';
 import cors from 'cors';
+import session from 'express-session';
 import { toNodeHandler } from 'better-auth/node';
 import { auth } from './utils/auth.js';
 import morgan from 'morgan';
 
 const app = express();
+
+app.set('trust proxy', 1);
 
 // Configure CORS middleware
 app.use(
@@ -12,6 +15,20 @@ app.use(
     origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true,
+  }),
+);
+
+app.use(
+  session({
+    secret: process.env.BETTER_AUTH_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: true,
+      httpOnly: true,
+      sameSite: 'none',
+      maxAge: 1000 * 60 * 15,
+    },
   }),
 );
 
