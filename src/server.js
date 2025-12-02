@@ -17,6 +17,6 @@ if (isNaN(port)) {
 
 app.use('/api/v1/users', usersRouter);
 
-app.listen(port, () => {
+app.listen(port, '0.0.0.0', () => {
   console.log(`Server is running on port ${port}`);
 });
