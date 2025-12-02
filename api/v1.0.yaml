@@ -7,30 +7,49 @@ servers:
   - url: https://kivo-api-production.up.railway.app
 paths:
   /api/v1/bmc:
-    post:
+    get:
       tags:
         - BMC API
-      description: Add new BMC
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [full_name]
-              properties:
-                full_name:
-                  type: string
-                  minLength: 3
-                  maxLength: 255
-                nationality:
-                  type: string
-                  minLength: 3
-                  maxLength: 255
-                  example: Indonesia
-                  nullable: true
+      description: Get all BMCs
+      parameters:
+        - in: query
+          name: is_public
+          description: Filter BMCs by public visibility
+          required: false
+          schema:
+            type: boolean
+            default: true
       responses:
-        201:
-          description: Success create BMC
+        200:
+          description: Success get all BMCs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BMC'
+
+  /api/v1/bmc/{id}:
+    get:
+      tags:
+        - BMC API
+      description: Get BMC by id
+      parameters:
+        - in: query
+          name: is_public
+          description: Filter BMCs by public visibility
+          required: false
+          schema:
+            type: boolean
+            default: true
+      responses:
+        200:
+          description: Success get BMC by id
           content:
             application/json:
               schema:
@@ -49,15 +68,6 @@ components:
         id:
           type: string
           format: uuid
-        coordinates:
-          type: object
-          properties:
-            lat:
-              type: string
-            long:
-              type: string
-            alt:
-              type: string
         author_id:
           type: string
           format: uuid
@@ -74,40 +84,40 @@ components:
                 type: array
                 items:
                   type: string
-            example:
-              - tag: 'Customer Segments'
-                content:
-                  - content 1
-                  - content 2
-              - tag: 'Value Proposition'
-                content:
-                  - content 1
-                  - content 2
-              - tag: 'Channels'
-                content:
-                  - content 1
-                  - content 2
-              - tag: 'Customer Relationship'
-                content:
-                  - content 1
-                  - content 2
-              - tag: 'Revenue Stream'
-                content:
-                  - content 1
-                  - content 2
-              - tag: 'Key Resources'
-                content:
-                  - content 1
-                  - content 2
-              - tag: 'Key Activities'
-                content:
-                  - content 1
-                  - content 2
-              - tag: 'Key Partnerships'
-                content:
-                  - content 1
-                  - content 2
-              - tag: 'Cost Structure'
-                content:
-                  - content 1
-                  - content 2
+          example:
+            - tag: 'Customer Segments'
+              content:
+                - content 1
+                - content 2
+            - tag: 'Value Proposition'
+              content:
+                - content 1
+                - content 2
+            - tag: 'Channels'
+              content:
+                - content 1
+                - content 2
+            - tag: 'Customer Relationship'
+              content:
+                - content 1
+                - content 2
+            - tag: 'Revenue Stream'
+              content:
+                - content 1
+                - content 2
+            - tag: 'Key Resources'
+              content:
+                - content 1
+                - content 2
+            - tag: 'Key Activities'
+              content:
+                - content 1
+                - content 2
+            - tag: 'Key Partnerships'
+              content:
+                - content 1
+                - content 2
+            - tag: 'Cost Structure'
+              content:
+                - content 1
+                - content 2
