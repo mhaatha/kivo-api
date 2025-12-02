@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { toNodeHandler } from 'better-auth/node';
 import { auth } from './utils/auth.js';
+import morgan from 'morgan';
 
 const app = express();
 
@@ -24,5 +25,7 @@ app.all('/api/v1/auth/*splat', toNodeHandler(auth));
 // Don’t use express.json() before the Better Auth handler.
 // Use it only for other routes, or the client API will get stuck on "pending".
 app.use(express.json());
+
+app.use(morgan('combined'));
 
 export default app;
