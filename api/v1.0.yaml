@@ -4,13 +4,13 @@ info:
   description: API for Kivo
   version: 1.0.0
 servers:
-  - url: http://localhost:3000
+  - url: https://kivo-api-production.up.railway.app
 paths:
-  /api/v1/authors:
+  /api/v1/bmc:
     post:
       tags:
-        - Author API
-      description: Add new author
+        - BMC API
+      description: Add new BMC
       requestBody:
         content:
           application/json:
@@ -30,7 +30,7 @@ paths:
                   nullable: true
       responses:
         201:
-          description: Success create author
+          description: Success create BMC
           content:
             application/json:
               schema:
@@ -39,410 +39,75 @@ paths:
                   message:
                     type: string
                   data:
-                    $ref: '#/components/schemas/Author'
-
-    get:
-      tags:
-        - Author API
-      description: Get all authors or get authors by certain params
-      parameters:
-        - in: query
-          name: full_name
-          schema:
-            type: string
-          description: Filter authors by full_name (optional, can be combined with other filters)
-        - in: query
-          name: nationality
-          schema:
-            type: string
-          description: Filter authors by nationality (optional, can be combined with other filters)
-      responses:
-        200:
-          description: Success get authors
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Author'
-  /api/v1/authors/{id}:
-    get:
-      tags:
-        - Author API
-      description: Get author by id
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-            format: uuid
-          required: true
-          description: Get author by id
-      responses:
-        200:
-          description: Success get author by id
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  data:
-                    $ref: '#/components/schemas/Author'
-    put:
-      tags:
-        - Author API
-      description: Update author by id
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-            format: uuid
-          required: true
-          description: Update author by id
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                full_name:
-                  type: string
-                  minLength: 3
-                  maxLength: 255
-                nationality:
-                  type: string
-                  minLength: 3
-                  maxLength: 255
-                  example: Indonesia
-                  nullable: true
-      responses:
-        200:
-          description: Success update author by id
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  data:
-                    $ref: '#/components/schemas/Author'
-    delete:
-      tags:
-        - Author API
-      description: Delete author by id
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-            format: uuid
-          required: true
-          description: Delete author by id
-      responses:
-        204:
-          description: Success delete author by id
-  /api/v1/books:
-    post:
-      tags:
-        - Book API
-      description: Add new book
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [name, total_page, author_id, photo_key, status]
-              properties:
-                name:
-                  type: string
-                  minLength: 3
-                  maxLength: 255
-                total_page:
-                  type: number
-                author_id:
-                  type: string
-                  format: uuid
-                photo_key:
-                  type: string
-                  minLength: 3
-                  maxLength: 255
-                status:
-                  type: string
-                  enum: [completed, reading, plan_to_read]
-                completed_date:
-                  type: string
-                  format: date
-                  nullable: true
-      responses:
-        201:
-          description: Success add new book
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  data:
-                    $ref: '#/components/schemas/PostAndPutBook'
-    get:
-      tags:
-        - Book API
-      description: Get all books or get books by certain params
-      parameters:
-        - in: query
-          name: status
-          schema:
-            type: string
-            enum: [completed, reading, plan_to_read]
-          description: Filter books by status (optional, can be combined with other filters)
-        - in: query
-          name: name
-          schema:
-            type: string
-          description: Filter books by name (optional, can be combined with other filters)
-        - in: query
-          name: author_name
-          schema:
-            type: string
-          description: Filter books by author name (optional, can be combined with other filters)
-      responses:
-        200:
-          description: Success get books
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/GetBook'
-  /api/v1/books/{id}:
-    get:
-      tags:
-        - Book API
-      description: Get book by id
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-            format: uuid
-          required: true
-          description: Get book by id
-      responses:
-        200:
-          description: Success get book by id
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  data:
-                    $ref: '#/components/schemas/GetBook'
-    put:
-      tags:
-        - Book API
-      description: Update book by id
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-            format: uuid
-          required: true
-          description: Update book by id
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                name:
-                  type: string
-                  minLength: 3
-                  maxLength: 255
-                total_page:
-                  type: number
-                author_id:
-                  type: string
-                  format: uuid
-                photo_key:
-                  type: string
-                  minLength: 3
-                  maxLength: 255
-                status:
-                  type: string
-                  enum: [completed, reading, plan_to_read]
-                completed_date:
-                  type: string
-                  format: date
-                  nullable: true
-      responses:
-        200:
-          description: Success update book by id
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  data:
-                    $ref: '#/components/schemas/PostAndPutBook'
-    delete:
-      tags:
-        - Book API
-      description: Delete book by id
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-            format: uuid
-          required: true
-          description: Delete book by id
-      responses:
-        204:
-          description: Success delete book by id
-  /api/v1/upload/books/presigned-url:
-    get:
-      tags:
-        - Upload API
-      description: Get presigned URL for upload book image
-      responses:
-        200:
-          description: Success get presigned URL
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  data:
-                    $ref: '#/components/schemas/Upload'
+                    $ref: '#/components/schemas/BMC'
 
 components:
   schemas:
-    Author:
+    BMC:
       type: object
-      required: [id, full_name]
       properties:
         id:
           type: string
           format: uuid
-        full_name:
-          type: string
-          minLength: 3
-          maxLength: 255
-        nationality:
-          type: string
-          minLength: 3
-          maxLength: 255
-          nullable: true
-    PostAndPutBook:
-      type: object
-      required: [id, name, total_page, author_id, photo_key, status]
-      properties:
-        id:
-          type: string
-          format: uuid
-        name:
-          type: string
-          minLength: 3
-          maxLength: 255
-        total_page:
-          type: number
-        author_id:
-          type: string
-          format: uuid
-        photo_key:
-          type: string
-          minLength: 3
-          maxLength: 255
-        status:
-          type: string
-          enum: [completed, reading, plan_to_read]
-        completed_date:
-          type: string
-          format: date
-          nullable: true
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-    GetBook:
-      type: object
-      required: [id, name, total_page, author_id, photo_url, status]
-      properties:
-        id:
-          type: string
-          format: uuid
-        name:
-          type: string
-          minLength: 3
-          maxLength: 255
-        total_page:
-          type: number
-        author_id:
-          type: string
-          format: uuid
-        photo_url:
-          type: string
-          minLength: 3
-          maxLength: 255
-        status:
-          type: string
-          enum: [completed, reading, plan_to_read]
-        completed_date:
-          type: string
-          format: date
-          nullable: true
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-    Upload:
-      type: object
-      required: [url, key]
-      properties:
-        url:
-          type: string
-        form_data:
+        coordinates:
           type: object
           properties:
-            Content-Type:
+            lat:
               type: string
-            bucket:
+            long:
               type: string
-            key:
+            alt:
               type: string
-            policy:
-              type: string
-            x-amz-algorithm:
-              type: string
-            x-amz-credential:
-              type: string
-            x-amz-date:
-              type: string
-            x-amz-signature:
-              type: string
+        author_id:
+          type: string
+          format: uuid
+        is_public:
+          type: boolean
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              tag:
+                type: string
+              content:
+                type: array
+                items:
+                  type: string
+            example:
+              - tag: 'Customer Segments'
+                content:
+                  - content 1
+                  - content 2
+              - tag: 'Value Proposition'
+                content:
+                  - content 1
+                  - content 2
+              - tag: 'Channels'
+                content:
+                  - content 1
+                  - content 2
+              - tag: 'Customer Relationship'
+                content:
+                  - content 1
+                  - content 2
+              - tag: 'Revenue Stream'
+                content:
+                  - content 1
+                  - content 2
+              - tag: 'Key Resources'
+                content:
+                  - content 1
+                  - content 2
+              - tag: 'Key Activities'
+                content:
+                  - content 1
+                  - content 2
+              - tag: 'Key Partnerships'
+                content:
+                  - content 1
+                  - content 2
+              - tag: 'Cost Structure'
+                content:
+                  - content 1
+                  - content 2
