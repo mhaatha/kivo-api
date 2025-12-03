@@ -8,7 +8,7 @@ import helmet from 'helmet';
 
 const app = express();
 
-app.set('trust proxy', 3);
+app.set('trust proxy', 1);
 
 // Configure CORS middleware
 app.use(
