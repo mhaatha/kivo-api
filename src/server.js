@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import app from './app/index.js';
 import databasesRouter from './app/routes/db.route.js';
+import bmcRouter from './app/routes/bmc.route.js';
 
 // PORT env section
 const port = process.env.PORT;
@@ -16,6 +17,7 @@ if (isNaN(port)) {
 }
 
 app.use('/api/v1/databases', databasesRouter);
+app.use('/api/v1/bmc', bmcRouter);
 
 app.listen(port, '0.0.0.0', () => {
   console.log(`Server is running on port ${port}`);
