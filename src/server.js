@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import app from './app/index.js';
-import usersRouter from './app/routes/users.js';
+import databasesRouter from './app/routes/db.route.js';
 
 // PORT env section
 const port = process.env.PORT;
@@ -15,7 +15,7 @@ if (isNaN(port)) {
   process.exit(1);
 }
 
-app.use('/api/v1/users', usersRouter);
+app.use('/api/v1/databases', databasesRouter);
 
 app.listen(port, '0.0.0.0', () => {
   console.log(`Server is running on port ${port}`);
