@@ -1,7 +1,22 @@
 import 'dotenv/config';
+import mongoose from 'mongoose';
 import app from './app/index.js';
 import databasesRouter from './app/routes/db.route.js';
 import bmcRouter from './app/routes/bmc.route.js';
+
+// MongoDB connection
+const mongoUri = process.env.MONGODB_URI;
+if (!mongoUri) {
+  console.error('error: MONGODB_URI environment variable is missing.');
+  process.exit(1);
+}
+
+mongoose.connect(mongoUri)
+  .then(() => console.log('MongoDB connected via Mongoose'))
+  .catch((err) => {
+    console.error('MongoDB connection error:', err);
+    process.exit(1);
+  });
 
 // PORT env section
 const port = process.env.PORT;
