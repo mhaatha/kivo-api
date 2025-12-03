@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import app from './app/index.js';
 import databasesRouter from './app/routes/db.route.js';
 import bmcRouter from './app/routes/bmc.route.js';
+import authRouter from './app/routes/auth.route.js';
 
 // MongoDB connection
 const mongoUri = process.env.MONGODB_URI;
@@ -11,10 +12,11 @@ if (!mongoUri) {
   process.exit(1);
 }
 
-mongoose.connect(mongoUri)
+mongoose
+  .connect(mongoUri)
   .then(() => console.log('MongoDB connected via Mongoose'))
   .catch((err) => {
-    console.error('MongoDB connection error:', err);
+    console.error('error: MongoDB connection error:', err);
     process.exit(1);
   });
 
@@ -33,6 +35,7 @@ if (isNaN(port)) {
 
 app.use('/api/v1/databases', databasesRouter);
 app.use('/api/v1/bmc', bmcRouter);
+app.use('/api/v1/auth', authRouter);
 
 app.listen(port, '0.0.0.0', () => {
   console.log(`Server is running on port ${port}`);

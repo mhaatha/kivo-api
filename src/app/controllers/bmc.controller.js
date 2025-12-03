@@ -1,11 +1,10 @@
-import { db } from '../utils/mongodb.js';
 import { bmcService } from '../services/bmc.service.js';
 
 export const bmcController = {
   async getAllBMCs(req, res) {
     try {
       const { is_public } = req.query;
-      const data = await bmcService.getAllBMCs();
+      const data = await bmcService.getAllBMCs(is_public);
 
       res.status(200).json({
         message: 'Success get all BMCs',
