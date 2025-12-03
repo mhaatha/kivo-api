@@ -1,4 +1,5 @@
 import { bmcRepository } from '../repositories/bmc.repository.js';
+import { ObjectId } from 'mongodb';
 
 export const bmcService = {
   async getAllBMCs(isPublicQuery) {
@@ -14,5 +15,20 @@ export const bmcService = {
     }
 
     return bmcRepository.findAll(filter);
+  },
+
+  async getBMCById(id) {
+    // Validate ID
+    if (!ObjectId.isValid(id)) {
+      throw new Error('error: Invalid BMC ID');
+    }
+
+    const result = await bmcRepository.findById(id);
+
+    if (!result) {
+      throw new Error('BMC not found');
+    }
+
+    return result;
   },
 };

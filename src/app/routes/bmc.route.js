@@ -1,8 +1,9 @@
 import { Router } from 'express';
-import { getAllBMCs } from '../controllers/bmc.controller.js';
+import { bmcController } from '../controllers/bmc.controller.js';
 
 const router = Router();
 
-router.get('/', getAllBMCs);
+router.get('/', bmcController.getAllBMCs);
+router.get('/:id', bmcController.getBMCById);
 
 export default router;
