@@ -4,6 +4,7 @@ import app from './app/index.js';
 import databasesRouter from './app/routes/db.route.js';
 import bmcRouter from './app/routes/bmc.route.js';
 import authRouter from './app/routes/auth.route.js';
+import protectedRouter from './app/routes/protected.route.js';
 
 // MongoDB connection
 const mongoUri = process.env.MONGODB_URI;
@@ -36,6 +37,7 @@ if (isNaN(port)) {
 app.use('/api/v1/databases', databasesRouter);
 app.use('/api/v1/bmc', bmcRouter);
 app.use('/api/v1/auth', authRouter);
+app.use('/api/v1/protected', protectedRouter);
 
 app.listen(port, '0.0.0.0', () => {
   console.log(`Server is running on port ${port}`);

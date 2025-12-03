@@ -1,9 +1,4 @@
-import {
-  clerkClient,
-  clerkMiddleware,
-  getAuth,
-  requireAuth,
-} from '@clerk/express';
+import { clerkMiddleware } from '@clerk/express';
 import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
@@ -33,16 +28,5 @@ app.use(express.json());
 app.use(morgan('combined'));
 
 app.use(helmet());
-
-// test protected route
-app.get('/api/v1/protected', requireAuth(), async (req, res) => {
-  // Use `getAuth()` to get the user's `userId`
-  const { userId } = getAuth(req);
-
-  // Use Clerk's JavaScript Backend SDK to get the user's User object
-  const user = await clerkClient.users.getUser(userId);
-
-  return res.json({ user });
-});
 
 export default app;

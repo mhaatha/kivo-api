@@ -1,5 +1,5 @@
 import { verifyWebhook } from '@clerk/express/webhooks';
-import User from './models/user.model.js';
+import User from '../models/user.model.js';
 
 export const authController = {
   async handleAuthWebhook(req, res) {
