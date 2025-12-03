@@ -60,18 +60,317 @@ paths:
                   data:
                     $ref: '#/components/schemas/BMC'
 
+  /api/v1/chat:
+    post:
+      tags:
+        - Chat API
+      summary: Send a new message to chat
+      description: Mengirim pesan baru ke chat dan mendapatkan respons AI secara streaming.
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateChatRequest'
+      responses:
+        '200':
+          description: Streaming response (Server-Sent Events)
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: Stream data containing 'data-usage' or 'data-appendMessage' events.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags:
+        - Chat API
+      summary: Delete a chat
+      description: Menghapus chat berdasarkan ID.
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: query
+          name: id
+          schema:
+            type: string
+            format: uuid
+          required: true
+          description: ID chat yang akan dihapus
+      responses:
+        '200':
+          description: Chat deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatObject'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/chat/{id}/stream:
+    get:
+      tags:
+        - Chat API
+      summary: Resume chat stream
+      description: Melanjutkan (resume) stream chat yang sedang berlangsung.
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ChatIdPath'
+      responses:
+        '200':
+          description: Stream resumed
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        '204':
+          description: Resumable stream not available
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Chat or stream not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/histories:
+    get:
+      tags:
+        - History API
+      summary: Get chat history
+      description: Mengambil daftar riwayat chat user dengan pagination.
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: number
+            default: 10
+          description: Jumlah maksimal chat yang dikembalikan
+        - in: query
+          name: starting_after
+          schema:
+            type: string
+          description: Cursor pagination (ambil data setelah ID ini)
+        - in: query
+          name: ending_before
+          schema:
+            type: string
+          description: Cursor pagination (ambil data sebelum ID ini)
+      responses:
+        '200':
+          description: List of chats
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ChatObject'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    delete:
+      tags:
+        - History API
+      summary: Clear all history
+      description: Menghapus semua chat milik user yang sedang login.
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: History cleared
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/suggestions:
+    get:
+      tags:
+        - Suggestion API
+      summary: Get document suggestions
+      description: Mengambil daftar saran untuk dokumen tertentu.
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: query
+          name: documentId
+          required: true
+          schema:
+            type: string
+          description: ID dokumen untuk mengambil saran
+      responses:
+        '200':
+          description: List of suggestions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SuggestionObject'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
 components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: session_id
+      description: Session authentication (cookie-based)
+
+  parameters:
+    ChatIdPath:
+      in: path
+      name: id
+      schema:
+        type: string
+        format: uuid
+      required: true
+      description: ID chat
+
+  responses:
+    BadRequest:
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
   schemas:
+    # --- Request Schemas ---
+    CreateChatRequest:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        message:
+          $ref: '#/components/schemas/MessageObject'
+        selectedChatModel:
+          type: string
+          enum: [chat-model, chat-model-reasoning]
+        selectedVisibilityType:
+          type: string
+          enum: [public, private]
+      required: [id, message]
+
+    MessageObject:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        role:
+          type: string
+          example: user
+        parts:
+          type: array
+          items:
+            $ref: '#/components/schemas/MessagePart'
+
+    MessagePart:
+      oneOf:
+        - $ref: '#/components/schemas/TextPart'
+        - $ref: '#/components/schemas/FilePart'
+      discriminator:
+        propertyName: type
+        mapping:
+          text: '#/components/schemas/TextPart'
+          file: '#/components/schemas/FilePart'
+
+    TextPart:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [text]
+        text:
+          type: string
+          minLength: 1
+          maxLength: 2000
+
+    FilePart:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [file]
+        mediaType:
+          type: string
+          enum: [image/jpeg, image/png]
+        name:
+          type: string
+          maxLength: 100
+        url:
+          type: string
+          format: uri
+
+    # --- Response Schemas ---
     BMC:
       type: object
       properties:
         id:
           type: string
           format: uuid
-        author_id:
+        authorId:
           type: string
           format: uuid
-        is_public:
+        isPublic:
           type: boolean
         items:
           type: array
@@ -121,3 +420,49 @@ components:
               content:
                 - content 1
                 - content 2
+
+    ChatObject:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        userId:
+          type: string
+          format: uuid
+        visibility:
+          type: string
+          enum: [public, private]
+        createdAt:
+          type: string
+          format: date-time
+
+    SuggestionObject:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        documentId:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    Error:
+      type: object
+      properties:
+        errorCode:
+          type: string
+          description: Internal error code (e.g., bad_request:api)
+        description:
+          type: string
+          description: Human readable error description
