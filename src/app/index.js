@@ -1,10 +1,8 @@
-import express from 'express';
+import { clerkClient, clerkMiddleware, getAuth, requireAuth } from '@clerk/express';
 import cors from 'cors';
-import session from 'express-session';
-import { toNodeHandler } from 'better-auth/node';
-import { auth } from './utils/auth.js';
-import morgan from 'morgan';
+import express from 'express';
 import helmet from 'helmet';
+import morgan from 'morgan';
 
 const app = express();
 
@@ -23,33 +21,24 @@ app.use(
   }),
 );
 
-app.use(
-  session({
-    secret: process.env.BETTER_AUTH_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: true,
-      httpOnly: true,
-      sameSite: 'none',
-      maxAge: 1000 * 60 * 15,
-    },
-  }),
-);
 
-// Mount Better Auth handler
-app.all('/api/v1/auth/*splat', toNodeHandler(auth));
+app.use(clerkMiddleware())
 
-// Middleware JSON parser
-// It helps the app read JSON data sent from the client
-// and makes it available in req.body
-//
-// Don’t use express.json() before the Better Auth handler.
-// Use it only for other routes, or the client API will get stuck on "pending".
 app.use(express.json());
 
 app.use(morgan('combined'));
 
 app.use(helmet());
+
+// test protected route
+app.get('/api/v1/protected', requireAuth(), async (req, res) => {
+  // Use `getAuth()` to get the user's `userId`
+  const { userId } = getAuth(req)
+
+  // Use Clerk's JavaScript Backend SDK to get the user's User object
+  const user = await clerkClient.users.getUser(userId)
+
+  return res.json({ user })
+})
 
 export default app;

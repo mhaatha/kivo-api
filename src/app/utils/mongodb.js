@@ -12,7 +12,6 @@ const client = new MongoClient(uri, {
 });
 
 // We DO NOT call client.connect() here.
-// Better Auth will handle connection lazily.
 
 const db = client.db();
 
