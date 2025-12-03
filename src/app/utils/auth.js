@@ -26,5 +26,9 @@ export const auth = betterAuth({
 
   plugins: [openAPI(), nextCookies()],
 
-  trustedOrigins: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+  trustedOrigins: [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    process.env.FRONTEND_URL1,
+  ],
 });
