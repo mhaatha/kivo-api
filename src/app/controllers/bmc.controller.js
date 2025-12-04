@@ -1,3 +1,4 @@
+import { getAuth } from '@clerk/express';
 import * as bmcService from '../services/bmc.service.js';
 import { validateBmcUpdate, validateBmcId } from '../validations/bmc.validation.js';
 
@@ -66,7 +67,7 @@ export async function getBmcById(req, res) {
  * GET /api/bmc/my - Get all BMCs for current user
  */
 export async function getMyBmcPosts(req, res) {
-  const userId = req.user.id;
+  const { userId } = getAuth(req);
 
   try {
     const bmcPosts = await bmcService.getBmcsByAuthorId(userId);
@@ -89,7 +90,7 @@ export async function getMyBmcPosts(req, res) {
  * POST /api/bmc - Create new BMC
  */
 export async function createBmc(req, res) {
-  const userId = req.user.id;
+  const { userId } = getAuth(req);
   const { items, isPublic } = req.body;
 
   try {
@@ -113,7 +114,7 @@ export async function createBmc(req, res) {
  * PUT /api/bmc/:id - Update BMC
  */
 export async function updateBmc(req, res) {
-  const userId = req.user.id;
+  const { userId } = getAuth(req);
   const bmcId = req.params.id;
   const { items } = req.body;
 
@@ -161,7 +162,7 @@ export async function updateBmc(req, res) {
  * DELETE /api/bmc/:id - Delete BMC
  */
 export async function deleteBmc(req, res) {
-  const userId = req.user.id;
+  const { userId } = getAuth(req);
   const bmcId = req.params.id;
 
   try {
@@ -191,7 +192,7 @@ export async function deleteBmc(req, res) {
  * PATCH /api/bmc/:id/visibility - Toggle BMC visibility
  */
 export async function toggleVisibility(req, res) {
-  const userId = req.user.id;
+  const { userId } = getAuth(req);
   const bmcId = req.params.id;
 
   try {
