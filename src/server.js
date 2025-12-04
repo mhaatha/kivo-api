@@ -1,7 +1,12 @@
 import 'dotenv/config';
 import mongoose from 'mongoose';
 import app from './app/index.js';
-import usersRouter from './app/routes/users.js';
+// Routes from main branch
+import databasesRouter from './app/routes/db.route.js';
+import bmcRouteRouter from './app/routes/bmc.route.js';
+import authRouter from './app/routes/auth.route.js';
+import protectedRouter from './app/routes/protected.route.js';
+// Routes from feat/ai-chat branch
 import aiRouter from './app/routes/ai.js';
 import bmcRouter from './app/routes/bmc.js';
 
@@ -36,8 +41,13 @@ mongoose
     process.exit(1);
   });
 
-// Routes
-app.use('/api/v1/users', usersRouter);
+// Routes from main branch
+app.use('/api/v1/databases', databasesRouter);
+app.use('/api/v1/bmc', bmcRouteRouter);
+app.use('/api/v1/auth', authRouter);
+app.use('/api/v1/protected', protectedRouter);
+
+// Routes from feat/ai-chat branch (AI Chat & BMC management)
 app.use('/api/chat', aiRouter);
 app.use('/api/chats', aiRouter);
 app.use('/api/bmc', bmcRouter);

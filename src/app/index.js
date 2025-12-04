@@ -1,31 +1,32 @@
-import express from 'express';
+import { clerkMiddleware } from '@clerk/express';
 import cors from 'cors';
-import { toNodeHandler } from 'better-auth/node';
-import { auth } from './utils/auth.js';
+import express from 'express';
+import helmet from 'helmet';
 import morgan from 'morgan';
 
 const app = express();
 
+app.set('trust proxy', 1);
+
 // Configure CORS middleware
 app.use(
   cors({
-    origin: ['*'],
+    origin: [
+      'http://localhost:3000',
+      'http://127.0.0.1:3000',
+      process.env.FRONTEND_URL1,
+    ],
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true,
   }),
 );
 
-// Mount Better Auth handler
-app.all('/api/v1/auth/*splat', toNodeHandler(auth));
+app.use(clerkMiddleware());
 
-// Middleware JSON parser
-// It helps the app read JSON data sent from the client
-// and makes it available in req.body
-//
-// Don’t use express.json() before the Better Auth handler.
-// Use it only for other routes, or the client API will get stuck on "pending".
 app.use(express.json());
 
 app.use(morgan('combined'));
+
+app.use(helmet());
 
 export default app;

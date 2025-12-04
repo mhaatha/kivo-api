@@ -25,10 +25,12 @@
     "route:list": "node src/scripts/routeList.js"
   },
   "dependencies": {
+    "@clerk/express": "^1.7.54",
     "ai": "^5.0.106",
-    "better-auth": "^1.4.3",
     "cors": "^2.8.5",
     "express": "^5.1.0",
+    "express-session": "^1.18.2",
+    "helmet": "^8.1.0",
     "mongodb": "^7.0.0",
     "mongoose": "^9.0.0",
     "morgan": "^1.10.1",
