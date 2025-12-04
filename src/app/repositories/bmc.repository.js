@@ -3,11 +3,11 @@ import { ObjectId } from 'mongodb';
 
 export const bmcRepository = {
   async findAll(filter = {}) {
-    return db.collection('bmc').find(filter).toArray();
+    return db.collection('bmcposts').find(filter).toArray();
   },
 
   async findById(id) {
-    return db.collection('bmc').findOne({
+    return db.collection('bmcposts').findOne({
       id: new ObjectId(id),
     });
   },
