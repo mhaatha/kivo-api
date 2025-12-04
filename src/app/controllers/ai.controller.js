@@ -47,7 +47,10 @@ export async function streamChat(req, res) {
       );
     } else {
       // Create new chat
-      const newChat = await chatService.createChat(userId, message.substring(0, 50));
+      const newChat = await chatService.createChat(
+        userId,
+        message.substring(0, 50),
+      );
       currentChatId = newChat._id;
       console.log(`[CHAT] New session created: ${currentChatId}`);
     }
@@ -74,7 +77,9 @@ export async function streamChat(req, res) {
 
     // --- 5. HANDLE TOOL CALLS ---
     if (responseMessage.tool_calls && responseMessage.tool_calls.length > 0) {
-      console.log(`[TOOL] ✅ AI called ${responseMessage.tool_calls.length} functions.`);
+      console.log(
+        `[TOOL] ✅ AI called ${responseMessage.tool_calls.length} functions.`,
+      );
 
       // Save assistant intent
       await chatService.createMessage(
@@ -116,7 +121,8 @@ export async function streamChat(req, res) {
 
       // --- 6. SECOND AI CALL (FINAL STREAMING RESPONSE) ---
       console.log(`[AI CALL 2] Streaming final answer...`);
-      const finalResponseStream = await aiService.getStreamingCompletion(messagesToSend);
+      const finalResponseStream =
+        await aiService.getStreamingCompletion(messagesToSend);
 
       res.writeHead(200, {
         'Content-Type': 'text/event-stream',
@@ -137,7 +143,11 @@ export async function streamChat(req, res) {
       res.end();
 
       if (aiFinalResponse) {
-        await chatService.createMessage(currentChatId, 'assistant', aiFinalResponse);
+        await chatService.createMessage(
+          currentChatId,
+          'assistant',
+          aiFinalResponse,
+        );
         await chatService.touchChat(currentChatId);
       }
       return;

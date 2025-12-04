@@ -1,4 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { TEST_USERS, SAMPLE_BMC_ITEMS } from '../setup.js';
 
 // Mock the services and validations
 vi.mock('../../src/app/services/bmc.service.js', () => ({
@@ -24,13 +25,17 @@ describe('BMC Controller', () => {
     mockReq = {
       body: {},
       params: {},
-      user: { id: 'user123' },
+      user: { id: TEST_USERS.user1.id },
     };
     mockRes = {
       status: vi.fn().mockReturnThis(),
       json: vi.fn().mockReturnThis(),
     };
     vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   describe('getPublicBmcPosts', () => {
@@ -52,8 +57,8 @@ describe('BMC Controller', () => {
     it('should return list of public BMC posts', async () => {
       const bmcService = await import('../../src/app/services/bmc.service.js');
       const mockPosts = [
-        { _id: 'bmc1', items: [], isPublic: true },
-        { _id: 'bmc2', items: [], isPublic: true },
+        { _id: 'bmc1', items: SAMPLE_BMC_ITEMS, isPublic: true, authorId: TEST_USERS.user1.id },
+        { _id: 'bmc2', items: SAMPLE_BMC_ITEMS.slice(0, 3), isPublic: true, authorId: TEST_USERS.user2.id },
       ];
       bmcService.getPublicBmcPosts.mockResolvedValue(mockPosts);
 
@@ -91,7 +96,7 @@ describe('BMC Controller', () => {
       validation.validateBmcId.mockReturnValue({ success: true });
 
       const bmcService = await import('../../src/app/services/bmc.service.js');
-      const mockBmc = { _id: 'bmc123', items: [], isPublic: false };
+      const mockBmc = { _id: 'bmc123', items: SAMPLE_BMC_ITEMS, isPublic: false, authorId: TEST_USERS.user1.id };
       bmcService.getBmcById.mockResolvedValue(mockBmc);
 
       const { getBmcById } = await import('../../src/app/controllers/bmc.controller.js');
@@ -139,13 +144,15 @@ describe('BMC Controller', () => {
   describe('getMyBmcPosts', () => {
     it('should return user BMC posts', async () => {
       const bmcService = await import('../../src/app/services/bmc.service.js');
-      const mockPosts = [{ _id: 'bmc1', authorId: 'user123', items: [] }];
+      const mockPosts = [
+        { _id: 'bmc1', authorId: TEST_USERS.user1.id, items: SAMPLE_BMC_ITEMS },
+      ];
       bmcService.getBmcsByAuthorId.mockResolvedValue(mockPosts);
 
       const { getMyBmcPosts } = await import('../../src/app/controllers/bmc.controller.js');
       await getMyBmcPosts(mockReq, mockRes);
 
-      expect(bmcService.getBmcsByAuthorId).toHaveBeenCalledWith('user123');
+      expect(bmcService.getBmcsByAuthorId).toHaveBeenCalledWith(TEST_USERS.user1.id);
       expect(mockRes.status).toHaveBeenCalledWith(200);
       expect(mockRes.json).toHaveBeenCalledWith({
         success: true,
@@ -153,14 +160,45 @@ describe('BMC Controller', () => {
         data: mockPosts,
       });
     });
+
+    it('should return empty array when user has no BMC posts', async () => {
+      const bmcService = await import('../../src/app/services/bmc.service.js');
+      bmcService.getBmcsByAuthorId.mockResolvedValue([]);
+
+      const { getMyBmcPosts } = await import('../../src/app/controllers/bmc.controller.js');
+      await getMyBmcPosts(mockReq, mockRes);
+
+      expect(mockRes.status).toHaveBeenCalledWith(200);
+      expect(mockRes.json).toHaveBeenCalledWith({
+        success: true,
+        count: 0,
+        data: [],
+      });
+    });
+
+    it('should use correct user ID from authenticated user', async () => {
+      mockReq.user.id = TEST_USERS.user2.id;
+      const bmcService = await import('../../src/app/services/bmc.service.js');
+      bmcService.getBmcsByAuthorId.mockResolvedValue([]);
+
+      const { getMyBmcPosts } = await import('../../src/app/controllers/bmc.controller.js');
+      await getMyBmcPosts(mockReq, mockRes);
+
+      expect(bmcService.getBmcsByAuthorId).toHaveBeenCalledWith(TEST_USERS.user2.id);
+    });
   });
 
   describe('createBmc', () => {
     it('should create BMC successfully', async () => {
-      mockReq.body = { items: [], isPublic: false };
+      mockReq.body = { items: SAMPLE_BMC_ITEMS.slice(0, 3), isPublic: false };
       
       const bmcService = await import('../../src/app/services/bmc.service.js');
-      const mockBmc = { _id: 'newBmc', authorId: 'user123', items: [], isPublic: false };
+      const mockBmc = { 
+        _id: 'newBmc', 
+        authorId: TEST_USERS.user1.id, 
+        items: mockReq.body.items, 
+        isPublic: false 
+      };
       bmcService.createBmc.mockResolvedValue(mockBmc);
 
       const { createBmc } = await import('../../src/app/controllers/bmc.controller.js');
@@ -173,12 +211,31 @@ describe('BMC Controller', () => {
         data: mockBmc,
       });
     });
+
+    it('should create BMC with all 9 blocks', async () => {
+      mockReq.body = { items: SAMPLE_BMC_ITEMS, isPublic: true };
+      
+      const bmcService = await import('../../src/app/services/bmc.service.js');
+      const mockBmc = { 
+        _id: 'newBmc', 
+        authorId: TEST_USERS.user1.id, 
+        items: SAMPLE_BMC_ITEMS, 
+        isPublic: true 
+      };
+      bmcService.createBmc.mockResolvedValue(mockBmc);
+
+      const { createBmc } = await import('../../src/app/controllers/bmc.controller.js');
+      await createBmc(mockReq, mockRes);
+
+      expect(mockRes.status).toHaveBeenCalledWith(201);
+      expect(mockRes.json.mock.calls[0][0].data.items).toHaveLength(9);
+    });
   });
 
   describe('updateBmc', () => {
     it('should update BMC successfully', async () => {
       mockReq.params.id = 'bmc123';
-      mockReq.body = { items: [{ tag: 'CustomerSegments', content: 'Test' }] };
+      mockReq.body = { items: [{ tag: 'CustomerSegments', content: 'Updated segment' }] };
       
       const validation = await import('../../src/app/validations/bmc.validation.js');
       validation.validateBmcUpdate.mockReturnValue({ success: true });
@@ -216,7 +273,7 @@ describe('BMC Controller', () => {
 
     it('should return 404 when BMC not found', async () => {
       mockReq.params.id = 'nonexistent';
-      mockReq.body = { items: [{ tag: 'Test', content: 'Test' }] };
+      mockReq.body = { items: [{ tag: 'CustomerSegments', content: 'Test' }] };
       
       const validation = await import('../../src/app/validations/bmc.validation.js');
       validation.validateBmcUpdate.mockReturnValue({ success: true });
@@ -241,6 +298,7 @@ describe('BMC Controller', () => {
       const { deleteBmc } = await import('../../src/app/controllers/bmc.controller.js');
       await deleteBmc(mockReq, mockRes);
 
+      expect(bmcService.deleteBmcById).toHaveBeenCalledWith('bmc123', TEST_USERS.user1.id);
       expect(mockRes.status).toHaveBeenCalledWith(200);
       expect(mockRes.json).toHaveBeenCalledWith({
         success: true,
