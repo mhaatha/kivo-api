@@ -3,12 +3,12 @@ info:
   title: Kivo API
   description: |
     API for Kivo - AI-powered Business Model Canvas assistant.
-    
+
     ## Features
     - **AI Chat**: Interactive AI assistant for creating Business Model Canvas
     - **BMC Management**: CRUD operations for Business Model Canvas posts
     - **Real-time Streaming**: Server-Sent Events for AI responses
-    
+
     ## Authentication
     Most endpoints require authentication via Bearer token from Better Auth.
   version: 1.1.0
@@ -34,7 +34,7 @@ paths:
       description: |
         Send a message to the AI assistant and receive a streaming response.
         The AI helps users create and refine their Business Model Canvas.
-        
+
         **Features:**
         - Real-time streaming via Server-Sent Events (SSE)
         - Multi-turn conversation with context
@@ -53,12 +53,12 @@ paths:
               newChat:
                 summary: Start a new chat
                 value:
-                  message: "Saya ingin membuat bisnis delivery makanan sehat"
+                  message: 'Saya ingin membuat bisnis delivery makanan sehat'
               continueChat:
                 summary: Continue existing chat
                 value:
-                  message: "Target pasar saya adalah pekerja kantoran usia 25-35 tahun"
-                  chatId: "507f1f77bcf86cd799439011"
+                  message: 'Target pasar saya adalah pekerja kantoran usia 25-35 tahun'
+                  chatId: '507f1f77bcf86cd799439011'
       responses:
         200:
           description: Streaming response via Server-Sent Events
@@ -78,7 +78,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 success: false
-                message: "Message cannot be empty."
+                message: 'Message cannot be empty.'
         401:
           description: Unauthorized
           content:
@@ -93,7 +93,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 success: false
-                message: "Invalid chat session."
+                message: 'Invalid chat session.'
         500:
           description: Server error
           content:
@@ -118,7 +118,7 @@ paths:
           schema:
             type: string
             format: objectid
-            example: "507f1f77bcf86cd799439011"
+            example: '507f1f77bcf86cd799439011'
       responses:
         200:
           description: List of chat messages
@@ -140,7 +140,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 success: false
-                message: "Chat not found."
+                message: 'Chat not found.'
         500:
           description: Server error
           content:
@@ -164,7 +164,7 @@ paths:
           schema:
             type: string
             format: objectid
-            example: "507f1f77bcf86cd799439011"
+            example: '507f1f77bcf86cd799439011'
       responses:
         200:
           description: Chat deleted successfully
@@ -174,7 +174,7 @@ paths:
                 $ref: '#/components/schemas/SuccessResponse'
               example:
                 success: true
-                message: "Chat deleted successfully."
+                message: 'Chat deleted successfully.'
         401:
           description: Unauthorized
           content:
@@ -249,10 +249,10 @@ paths:
                 value:
                   isPublic: false
                   items:
-                    - tag: "CustomerSegments"
-                      content: "Pekerja kantoran usia 25-35 tahun"
-                    - tag: "ValuePropositions"
-                      content: "Makanan sehat dengan pengiriman cepat"
+                    - tag: 'CustomerSegments'
+                      content: 'Pekerja kantoran usia 25-35 tahun'
+                    - tag: 'ValuePropositions'
+                      content: 'Makanan sehat dengan pengiriman cepat'
       responses:
         201:
           description: BMC created successfully
@@ -338,7 +338,7 @@ paths:
           schema:
             type: string
             format: objectid
-            example: "507f1f77bcf86cd799439011"
+            example: '507f1f77bcf86cd799439011'
       responses:
         200:
           description: BMC post details
@@ -360,7 +360,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 success: false
-                message: "BMC data not found."
+                message: 'BMC data not found.'
         500:
           description: Server error
           content:
@@ -392,12 +392,12 @@ paths:
               $ref: '#/components/schemas/UpdateBmcRequest'
             example:
               items:
-                - tag: "CustomerSegments"
-                  content: "Mahasiswa dan pekerja kantoran"
-                - tag: "ValuePropositions"
-                  content: "Platform belajar interaktif dengan AI tutor"
-                - tag: "Channels"
-                  content: "Mobile app dan website"
+                - tag: 'CustomerSegments'
+                  content: 'Mahasiswa dan pekerja kantoran'
+                - tag: 'ValuePropositions'
+                  content: 'Platform belajar interaktif dengan AI tutor'
+                - tag: 'Channels'
+                  content: 'Mobile app dan website'
       responses:
         200:
           description: BMC updated successfully
@@ -425,7 +425,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 success: false
-                message: "BMC not found or you do not have permission to update."
+                message: 'BMC not found or you do not have permission to update.'
         500:
           description: Server error
           content:
@@ -458,7 +458,7 @@ paths:
                 $ref: '#/components/schemas/SuccessResponse'
               example:
                 success: true
-                message: "BMC deleted successfully."
+                message: 'BMC deleted successfully.'
         401:
           description: Unauthorized
           content:
@@ -507,7 +507,7 @@ paths:
                     properties:
                       message:
                         type: string
-                        example: "BMC is now public."
+                        example: 'BMC is now public.'
         401:
           description: Unauthorized
           content:
@@ -550,7 +550,7 @@ paths:
                     example: true
                   message:
                     type: string
-                    example: "Hello, Vito Andareas Manik!"
+                    example: 'Hello, Vito Andareas Manik!'
         401:
           description: Unauthorized
           content:
@@ -571,12 +571,12 @@ components:
           minLength: 1
           maxLength: 10000
           description: User message to send to the AI
-          example: "Saya ingin membuat bisnis delivery makanan sehat"
+          example: 'Saya ingin membuat bisnis delivery makanan sehat'
         chatId:
           type: string
           format: objectid
           description: Optional chat session ID to continue existing conversation
-          example: "507f1f77bcf86cd799439011"
+          example: '507f1f77bcf86cd799439011'
 
     StreamChatResponse:
       type: object
@@ -603,7 +603,7 @@ components:
         title:
           type: string
           description: Chat title (usually first message truncated)
-          example: "Saya ingin membuat bisnis delivery..."
+          example: 'Saya ingin membuat bisnis delivery...'
         createdAt:
           type: string
           format: date-time
@@ -687,7 +687,7 @@ components:
           type: string
           minLength: 1
           description: Content for the BMC block
-          example: "Pekerja kantoran usia 25-35 tahun di Jakarta"
+          example: 'Pekerja kantoran usia 25-35 tahun di Jakarta'
 
     Coordinate:
       type: object
@@ -769,7 +769,7 @@ components:
           example: true
         message:
           type: string
-          example: "BMC created successfully."
+          example: 'BMC created successfully.'
         data:
           $ref: '#/components/schemas/BmcPost'
 
