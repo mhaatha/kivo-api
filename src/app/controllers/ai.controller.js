@@ -1,3 +1,4 @@
+import { getAuth } from '@clerk/express';
 import * as chatService from '../services/chat.service.js';
 import * as aiService from '../services/ai.service.js';
 import { validateStreamChatRequest } from '../validations/ai.validation.js';
@@ -7,7 +8,7 @@ import { validateStreamChatRequest } from '../validations/ai.validation.js';
  */
 export async function streamChat(req, res) {
   const { message, chatId } = req.body;
-  const userId = req.user.id;
+  const { userId } = getAuth(req);
 
   // Validate request
   const validation = validateStreamChatRequest(req.body);
@@ -204,7 +205,7 @@ export async function streamChat(req, res) {
  * GET /api/chats - Get all chats for user
  */
 export async function getChats(req, res) {
-  const userId = req.user.id;
+  const { userId } = getAuth(req);
 
   try {
     const chats = await chatService.getChatsByUserId(userId);
@@ -231,7 +232,7 @@ export async function getChats(req, res) {
  */
 export async function getChatMessages(req, res) {
   const { chatId } = req.params;
-  const userId = req.user.id;
+  const { userId } = getAuth(req);
 
   try {
     const chat = await chatService.getChatById(chatId);
@@ -266,7 +267,7 @@ export async function getChatMessages(req, res) {
  */
 export async function deleteChatById(req, res) {
   const { chatId } = req.params;
-  const userId = req.user.id;
+  const { userId } = getAuth(req);
 
   try {
     const deletedChat = await chatService.deleteChat(chatId, userId);
