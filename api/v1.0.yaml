@@ -1,448 +1,820 @@
 openapi: 3.0.3
 info:
   title: Kivo API
-  description: API for Kivo
-  version: 1.0.0
+  description: |
+    API for Kivo - AI-powered Business Model Canvas assistant.
+    
+    ## Features
+    - **AI Chat**: Interactive AI assistant for creating Business Model Canvas
+    - **BMC Management**: CRUD operations for Business Model Canvas posts
+    - **Real-time Streaming**: Server-Sent Events for AI responses
+    
+    ## Authentication
+    Most endpoints require authentication via Bearer token from Better Auth.
+  version: 1.1.0
+  contact:
+    name: Kivo Team
 servers:
   - url: http://localhost:3000
+    description: Local development server
+tags:
+  - name: Users
+    description: User management
+  - name: AI Chat
+    description: AI-powered chat for BMC generation
+  - name: BMC
+    description: Business Model Canvas management
 paths:
-  /api/v1/authors:
+  # ==================== AI CHAT ENDPOINTS ====================
+  /api/chat:
     post:
       tags:
-        - Author API
-      description: Add new author
+        - AI Chat
+      summary: Stream chat with AI
+      description: |
+        Send a message to the AI assistant and receive a streaming response.
+        The AI helps users create and refine their Business Model Canvas.
+        
+        **Features:**
+        - Real-time streaming via Server-Sent Events (SSE)
+        - Multi-turn conversation with context
+        - Automatic BMC creation/update via AI tool calls
+        - New chat session creation when chatId is not provided
+      operationId: streamChat
+      security:
+        - bearerAuth: []
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: object
-              required: [full_name]
-              properties:
-                full_name:
-                  type: string
-                  minLength: 3
-                  maxLength: 255
-                nationality:
-                  type: string
-                  minLength: 3
-                  maxLength: 255
-                  example: Indonesia
-                  nullable: true
+              $ref: '#/components/schemas/StreamChatRequest'
+            examples:
+              newChat:
+                summary: Start a new chat
+                value:
+                  message: "Saya ingin membuat bisnis delivery makanan sehat"
+              continueChat:
+                summary: Continue existing chat
+                value:
+                  message: "Target pasar saya adalah pekerja kantoran usia 25-35 tahun"
+                  chatId: "507f1f77bcf86cd799439011"
       responses:
-        201:
-          description: Success create author
+        200:
+          description: Streaming response via Server-Sent Events
+          content:
+            text/event-stream:
+              schema:
+                $ref: '#/components/schemas/StreamChatResponse'
+              examples:
+                streamChunk:
+                  summary: Single SSE chunk
+                  value: 'data: {"chunk":"Menarik! ","chatId":"507f1f77bcf86cd799439011","isNewChat":true}'
+        400:
+          description: Invalid request
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  data:
-                    $ref: '#/components/schemas/Author'
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                message: "Message cannot be empty."
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        404:
+          description: Chat not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                message: "Invalid chat session."
+        500:
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
+  /api/chat/{chatId}/messages:
     get:
       tags:
-        - Author API
-      description: Get all authors or get authors by certain params
+        - AI Chat
+      summary: Get chat messages
+      description: Retrieve all messages for a specific chat session. Only user and assistant messages are returned.
+      operationId: getChatMessages
+      security:
+        - bearerAuth: []
       parameters:
-        - in: query
-          name: full_name
-          schema:
-            type: string
-          description: Filter authors by full_name (optional, can be combined with other filters)
-        - in: query
-          name: nationality
-          schema:
-            type: string
-          description: Filter authors by nationality (optional, can be combined with other filters)
-      responses:
-        200:
-          description: Success get authors
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Author'
-  /api/v1/authors/{id}:
-    get:
-      tags:
-        - Author API
-      description: Get author by id
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-            format: uuid
+        - name: chatId
+          in: path
           required: true
-          description: Get author by id
-      responses:
-        200:
-          description: Success get author by id
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  data:
-                    $ref: '#/components/schemas/Author'
-    put:
-      tags:
-        - Author API
-      description: Update author by id
-      parameters:
-        - in: path
-          name: id
+          description: MongoDB ObjectId of the chat session
           schema:
             type: string
-            format: uuid
-          required: true
-          description: Update author by id
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                full_name:
-                  type: string
-                  minLength: 3
-                  maxLength: 255
-                nationality:
-                  type: string
-                  minLength: 3
-                  maxLength: 255
-                  example: Indonesia
-                  nullable: true
+            format: objectid
+            example: "507f1f77bcf86cd799439011"
       responses:
         200:
-          description: Success update author by id
+          description: List of chat messages
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  data:
-                    $ref: '#/components/schemas/Author'
+                $ref: '#/components/schemas/MessagesResponse'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        404:
+          description: Chat not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                message: "Chat not found."
+        500:
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
     delete:
       tags:
-        - Author API
-      description: Delete author by id
+        - AI Chat
+      summary: Delete a chat
+      description: Delete a chat session and all its messages. Only the owner can delete their chat.
+      operationId: deleteChatById
+      security:
+        - bearerAuth: []
       parameters:
-        - in: path
-          name: id
+        - name: chatId
+          in: path
+          required: true
+          description: MongoDB ObjectId of the chat session
           schema:
             type: string
-            format: uuid
-          required: true
-          description: Delete author by id
+            format: objectid
+            example: "507f1f77bcf86cd799439011"
       responses:
-        204:
-          description: Success delete author by id
-  /api/v1/books:
+        200:
+          description: Chat deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+              example:
+                success: true
+                message: "Chat deleted successfully."
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        404:
+          description: Chat not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        500:
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/chats:
+    get:
+      tags:
+        - AI Chat
+      summary: Get all chats for user
+      description: Retrieve all chat sessions for the authenticated user, ordered by most recent.
+      operationId: getChats
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: List of user's chats
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatsResponse'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        500:
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ==================== BMC ENDPOINTS ====================
+  /api/bmc:
     post:
       tags:
-        - Book API
-      description: Add new book
+        - BMC
+      summary: Create new BMC
+      description: Create a new Business Model Canvas. Can be created empty or with initial items.
+      operationId: createBmc
+      security:
+        - bearerAuth: []
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: object
-              required: [name, total_page, author_id, photo_key, status]
-              properties:
-                name:
-                  type: string
-                  minLength: 3
-                  maxLength: 255
-                total_page:
-                  type: number
-                author_id:
-                  type: string
-                  format: uuid
-                photo_key:
-                  type: string
-                  minLength: 3
-                  maxLength: 255
-                status:
-                  type: string
-                  enum: [completed, reading, plan_to_read]
-                completed_date:
-                  type: string
-                  format: date
-                  nullable: true
+              $ref: '#/components/schemas/CreateBmcRequest'
+            examples:
+              empty:
+                summary: Create empty BMC
+                value:
+                  isPublic: false
+              withItems:
+                summary: Create with initial items
+                value:
+                  isPublic: false
+                  items:
+                    - tag: "CustomerSegments"
+                      content: "Pekerja kantoran usia 25-35 tahun"
+                    - tag: "ValuePropositions"
+                      content: "Makanan sehat dengan pengiriman cepat"
       responses:
         201:
-          description: Success add new book
+          description: BMC created successfully
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  data:
-                    $ref: '#/components/schemas/PostAndPutBook'
+                $ref: '#/components/schemas/BmcResponse'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        500:
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/bmc/public:
     get:
       tags:
-        - Book API
-      description: Get all books or get books by certain params
-      parameters:
-        - in: query
-          name: status
-          schema:
-            type: string
-            enum: [completed, reading, plan_to_read]
-          description: Filter books by status (optional, can be combined with other filters)
-        - in: query
-          name: name
-          schema:
-            type: string
-          description: Filter books by name (optional, can be combined with other filters)
-        - in: query
-          name: author_name
-          schema:
-            type: string
-          description: Filter books by author name (optional, can be combined with other filters)
+        - BMC
+      summary: Get all public BMC posts
+      description: Retrieve all BMC posts that are marked as public. No authentication required.
+      operationId: getPublicBmcPosts
       responses:
         200:
-          description: Success get books
+          description: List of public BMC posts
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/GetBook'
-  /api/v1/books/{id}:
+                $ref: '#/components/schemas/BmcListResponse'
+        500:
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/bmc/my:
     get:
       tags:
-        - Book API
-      description: Get book by id
+        - BMC
+      summary: Get my BMC posts
+      description: Retrieve all BMC posts created by the authenticated user.
+      operationId: getMyBmcPosts
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: List of user's BMC posts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BmcListResponse'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        500:
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/bmc/{id}:
+    get:
+      tags:
+        - BMC
+      summary: Get BMC by ID
+      description: Retrieve a specific BMC post by its ID.
+      operationId: getBmcById
       parameters:
-        - in: path
-          name: id
-          schema:
-            type: string
-            format: uuid
+        - name: id
+          in: path
           required: true
-          description: Get book by id
+          description: MongoDB ObjectId of the BMC post
+          schema:
+            type: string
+            format: objectid
+            example: "507f1f77bcf86cd799439011"
       responses:
         200:
-          description: Success get book by id
+          description: BMC post details
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  data:
-                    $ref: '#/components/schemas/GetBook'
+                $ref: '#/components/schemas/BmcResponse'
+        400:
+          description: Invalid BMC ID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        404:
+          description: BMC not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                message: "BMC data not found."
+        500:
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
     put:
       tags:
-        - Book API
-      description: Update book by id
+        - BMC
+      summary: Update BMC
+      description: Update an existing BMC post. Only the author can update their BMC.
+      operationId: updateBmc
+      security:
+        - bearerAuth: []
       parameters:
-        - in: path
-          name: id
+        - name: id
+          in: path
+          required: true
+          description: MongoDB ObjectId of the BMC post
           schema:
             type: string
-            format: uuid
-          required: true
-          description: Update book by id
+            format: objectid
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                name:
-                  type: string
-                  minLength: 3
-                  maxLength: 255
-                total_page:
-                  type: number
-                author_id:
-                  type: string
-                  format: uuid
-                photo_key:
-                  type: string
-                  minLength: 3
-                  maxLength: 255
-                status:
-                  type: string
-                  enum: [completed, reading, plan_to_read]
-                completed_date:
-                  type: string
-                  format: date
-                  nullable: true
+              $ref: '#/components/schemas/UpdateBmcRequest'
+            example:
+              items:
+                - tag: "CustomerSegments"
+                  content: "Mahasiswa dan pekerja kantoran"
+                - tag: "ValuePropositions"
+                  content: "Platform belajar interaktif dengan AI tutor"
+                - tag: "Channels"
+                  content: "Mobile app dan website"
       responses:
         200:
-          description: Success update book by id
+          description: BMC updated successfully
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  data:
-                    $ref: '#/components/schemas/PostAndPutBook'
+                $ref: '#/components/schemas/BmcResponse'
+        400:
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        404:
+          description: BMC not found or unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                message: "BMC not found or you do not have permission to update."
+        500:
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
     delete:
       tags:
-        - Book API
-      description: Delete book by id
+        - BMC
+      summary: Delete BMC
+      description: Delete a BMC post. Only the author can delete their BMC.
+      operationId: deleteBmc
+      security:
+        - bearerAuth: []
       parameters:
-        - in: path
-          name: id
+        - name: id
+          in: path
+          required: true
+          description: MongoDB ObjectId of the BMC post
           schema:
             type: string
-            format: uuid
-          required: true
-          description: Delete book by id
-      responses:
-        204:
-          description: Success delete book by id
-  /api/v1/upload/books/presigned-url:
-    get:
-      tags:
-        - Upload API
-      description: Get presigned URL for upload book image
+            format: objectid
       responses:
         200:
-          description: Success get presigned URL
+          description: BMC deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+              example:
+                success: true
+                message: "BMC deleted successfully."
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        404:
+          description: BMC not found or unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        500:
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/bmc/{id}/visibility:
+    patch:
+      tags:
+        - BMC
+      summary: Toggle BMC visibility
+      description: Toggle between public and private visibility for a BMC post.
+      operationId: toggleBmcVisibility
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: MongoDB ObjectId of the BMC post
+          schema:
+            type: string
+            format: objectid
+      responses:
+        200:
+          description: Visibility toggled successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BmcResponse'
+                  - type: object
+                    properties:
+                      message:
+                        type: string
+                        example: "BMC is now public."
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        404:
+          description: BMC not found or unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        500:
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ==================== USERS ENDPOINTS ====================
+  /api/v1/users:
+    get:
+      tags:
+        - Users
+      summary: Greet authenticated user
+      description: Returns a greeting message for the authenticated user
+      operationId: greetUser
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Greeting message
           content:
             application/json:
               schema:
                 type: object
                 properties:
+                  success:
+                    type: boolean
+                    example: true
                   message:
                     type: string
-                  data:
-                    $ref: '#/components/schemas/Upload'
+                    example: "Hello, Vito Andareas Manik!"
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
 components:
   schemas:
-    Author:
+    # ==================== AI CHAT SCHEMAS ====================
+    StreamChatRequest:
       type: object
-      required: [id, full_name]
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          minLength: 1
+          maxLength: 10000
+          description: User message to send to the AI
+          example: "Saya ingin membuat bisnis delivery makanan sehat"
+        chatId:
+          type: string
+          format: objectid
+          description: Optional chat session ID to continue existing conversation
+          example: "507f1f77bcf86cd799439011"
+
+    StreamChatResponse:
+      type: object
+      description: Server-Sent Event data chunk
+      properties:
+        chunk:
+          type: string
+          description: Text chunk from AI response
+        chatId:
+          type: string
+          format: objectid
+          description: ID of the chat session
+        isNewChat:
+          type: boolean
+          description: Whether this is a newly created chat session
+
+    Chat:
+      type: object
       properties:
         id:
           type: string
-          format: uuid
-        full_name:
+          format: objectid
+          description: Unique chat session ID
+        title:
           type: string
-          minLength: 3
-          maxLength: 255
-        nationality:
+          description: Chat title (usually first message truncated)
+          example: "Saya ingin membuat bisnis delivery..."
+        createdAt:
           type: string
-          minLength: 3
-          maxLength: 255
-          nullable: true
-    PostAndPutBook:
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Message:
       type: object
-      required: [id, name, total_page, author_id, photo_key, status]
       properties:
         id:
           type: string
-          format: uuid
-        name:
+          format: objectid
+        role:
           type: string
-          minLength: 3
-          maxLength: 255
-        total_page:
+          enum: [user, assistant]
+          description: Message sender role
+        content:
+          type: string
+          description: Message content
+        createdAt:
+          type: string
+          format: date-time
+
+    ChatsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Chat'
+
+    MessagesResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+
+    # ==================== BMC SCHEMAS ====================
+    BmcTag:
+      type: string
+      enum:
+        - CustomerSegments
+        - ValuePropositions
+        - Channels
+        - CustomerRelationships
+        - RevenueStreams
+        - KeyResources
+        - KeyActivities
+        - KeyPartnerships
+        - CostStructure
+      description: |
+        Business Model Canvas block types:
+        - **CustomerSegments**: Target customer groups
+        - **ValuePropositions**: Value offered to customers
+        - **Channels**: Distribution and communication channels
+        - **CustomerRelationships**: Customer engagement strategies
+        - **RevenueStreams**: Revenue sources
+        - **KeyResources**: Critical assets required
+        - **KeyActivities**: Key operations and activities
+        - **KeyPartnerships**: Strategic partners
+        - **CostStructure**: Cost breakdown
+
+    BmcItem:
+      type: object
+      required:
+        - tag
+        - content
+      properties:
+        tag:
+          $ref: '#/components/schemas/BmcTag'
+        content:
+          type: string
+          minLength: 1
+          description: Content for the BMC block
+          example: "Pekerja kantoran usia 25-35 tahun di Jakarta"
+
+    Coordinate:
+      type: object
+      properties:
+        lat:
           type: number
-        author_id:
-          type: string
-          format: uuid
-        photo_key:
-          type: string
-          minLength: 3
-          maxLength: 255
-        status:
-          type: string
-          enum: [completed, reading, plan_to_read]
-        completed_date:
-          type: string
-          format: date
-          nullable: true
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-    GetBook:
+          format: double
+          description: Latitude
+          example: -6.2088
+        long:
+          type: number
+          format: double
+          description: Longitude
+          example: 106.8456
+        alt:
+          type: number
+          format: double
+          description: Altitude
+          default: 0
+
+    BmcPost:
       type: object
-      required: [id, name, total_page, author_id, photo_url, status]
       properties:
         id:
           type: string
-          format: uuid
-        name:
+          format: objectid
+          description: Unique BMC post ID
+        authorId:
           type: string
-          minLength: 3
-          maxLength: 255
-        total_page:
-          type: number
-        author_id:
-          type: string
-          format: uuid
-        photo_url:
-          type: string
-          minLength: 3
-          maxLength: 255
-        status:
-          type: string
-          enum: [completed, reading, plan_to_read]
-        completed_date:
-          type: string
-          format: date
-          nullable: true
-        created_at:
+          description: User ID of the author
+        isPublic:
+          type: boolean
+          description: Whether the BMC is publicly visible
+          default: false
+        coordinat:
+          $ref: '#/components/schemas/Coordinate'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/BmcItem'
+          description: Array of BMC block items
+        createdAt:
           type: string
           format: date-time
-        updated_at:
+        updatedAt:
           type: string
           format: date-time
-    Upload:
+
+    CreateBmcRequest:
       type: object
-      required: [url, key]
       properties:
-        url:
+        isPublic:
+          type: boolean
+          default: false
+          description: Whether the BMC should be public
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/BmcItem'
+          description: Initial BMC items (optional)
+
+    UpdateBmcRequest:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/BmcItem'
+          minItems: 1
+          description: Updated BMC items
+
+    BmcResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
           type: string
-        form_data:
-          type: object
-          properties:
-            Content-Type:
-              type: string
-            bucket:
-              type: string
-            key:
-              type: string
-            policy:
-              type: string
-            x-amz-algorithm:
-              type: string
-            x-amz-credential:
-              type: string
-            x-amz-date:
-              type: string
-            x-amz-signature:
-              type: string
+          example: "BMC created successfully."
+        data:
+          $ref: '#/components/schemas/BmcPost'
+
+    BmcListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        count:
+          type: integer
+          description: Number of BMC posts returned
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BmcPost'
+
+    # ==================== COMMON SCHEMAS ====================
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          description: Error message
+        details:
+          type: array
+          items:
+            type: object
+          description: Validation error details (optional)
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Better Auth session token

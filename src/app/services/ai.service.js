@@ -4,7 +4,8 @@ import { BmcPost } from '../models/bmc.model.js';
 
 // API Configuration
 const KOLOSAL_API_KEY = process.env.KOLOSAL_API_KEY;
-const KOLOSAL_API_ENDPOINT = process.env.KOLOSAL_API_ENDPOINT || 'https://api.kolosal.ai/v1';
+const KOLOSAL_API_ENDPOINT =
+  process.env.KOLOSAL_API_ENDPOINT || 'https://api.kolosal.ai/v1';
 const KOLOSAL_MODEL_NAME = process.env.KOLOSAL_MODEL_NAME || 'Kimi K2';
 
 // Google Search Configuration
@@ -119,7 +120,8 @@ export async function postBmcToDatabase(bmcData, userId) {
 
     return {
       status: 'success',
-      system_note: 'BMC created. SAVE THIS ID TO MEMORY: ' + savedBmcPost._id.toString(),
+      system_note:
+        'BMC created. SAVE THIS ID TO MEMORY: ' + savedBmcPost._id.toString(),
       bmcId: savedBmcPost._id.toString(),
     };
   } catch (error) {
@@ -131,7 +133,9 @@ export async function postBmcToDatabase(bmcData, userId) {
 // Tool: Update BMC
 export async function updateBmcToDatabase(bmcId, bmcData, userId) {
   try {
-    console.log(`📝 [UPDATE] Updating BMC ID: ${bmcId}. Items: ${bmcData?.length || 0}`);
+    console.log(
+      `📝 [UPDATE] Updating BMC ID: ${bmcId}. Items: ${bmcData?.length || 0}`,
+    );
     if (!bmcId) return { status: 'failed', message: 'BMC ID required.' };
     if (!bmcData || !Array.isArray(bmcData)) {
       return { status: 'failed', message: 'BMC data empty.' };
@@ -196,10 +200,14 @@ export const AVAILABLE_TOOLS = [
       parameters: {
         type: 'object',
         properties: {
-          bmcId: { type: 'string', description: 'MongoDB ID of current BMC document.' },
+          bmcId: {
+            type: 'string',
+            description: 'MongoDB ID of current BMC document.',
+          },
           bmcData: {
             type: 'array',
-            description: 'COMPLETE list (Cumulative) of all BMC aspects (Old + New Data).',
+            description:
+              'COMPLETE list (Cumulative) of all BMC aspects (Old + New Data).',
             items: {
               type: 'object',
               properties: {
@@ -218,7 +226,8 @@ export const AVAILABLE_TOOLS = [
     type: 'function',
     function: {
       name: 'performWebSearch',
-      description: 'Search for factual data, market statistics, or industry trends to validate ideas.',
+      description:
+        'Search for factual data, market statistics, or industry trends to validate ideas.',
       parameters: {
         type: 'object',
         properties: {
