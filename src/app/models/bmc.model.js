@@ -1,25 +1,21 @@
 import mongoose from 'mongoose';
 
-// Schema for coordinate (location)
+// --- Schema for Coordinate ---
 const coordinateSchema = new mongoose.Schema(
   {
     lat: {
       type: Number,
       required: true,
     },
-    long: {
+    lon: {
       type: Number,
       required: true,
     },
-    alt: {
-      type: Number,
-      default: 0,
-    },
   },
-  { _id: false },
+  { _id: false }
 );
 
-// Schema for BMC item content
+// --- Schema for BMC Item Content ---
 const itemContentSchema = new mongoose.Schema(
   {
     tag: {
@@ -42,15 +38,17 @@ const itemContentSchema = new mongoose.Schema(
       required: true,
     },
   },
-  { _id: false },
+  { _id: false }
 );
 
-// BMC Post Schema
+// --- BMC Post Schema ---
 const bmcPostSchema = new mongoose.Schema(
   {
-    coordinat: {
+    // Perbaikan: Ubah 'coordinat' jadi 'coordinate' (opsional)
+    // Perbaikan: Default value harus 'lon', bukan 'lon' (mengikuti coordinateSchema)
+    coordinate: {
       type: coordinateSchema,
-      default: { lat: 0, long: 0, alt: 0 },
+      default: { lat: -6.212249928667231, lon: 106.79734681365301 }, 
     },
     authorId: {
       type: String,
@@ -65,7 +63,7 @@ const bmcPostSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  },
+  }
 );
 
 // Virtual for id
@@ -84,4 +82,7 @@ bmcPostSchema.set('toJSON', {
   },
 });
 
-export const BmcPost = mongoose.model('BmcPost', bmcPostSchema);
+// --- EXPORT YANG AMAN (Safe Export) ---
+// Mengecek apakah model sudah ada sebelum membuatnya (Penting untuk Next.js/Serverless)
+const BmcPost = mongoose.models.BmcPost || mongoose.model('Bmc', bmcPostSchema);
+export { BmcPost };
