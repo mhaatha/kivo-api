@@ -83,38 +83,80 @@ export async function getUserFacingMessages(chatId) {
  * Build message history for AI (including tool messages)
  */
 export async function buildAIMessageHistory(chatId) {
-  const messages = await Message.find({ chatId }).sort({ createdAt: 1 }).lean();
+  // 1. Ambil pesan dengan .lean()
+  const messages = await Message.find({ chatId })
+    .sort({ createdAt: 1 })
+    .lean();
   
   let detectedBmcId = null;
   
   const history = messages
     .filter((msg) => ['user', 'assistant', 'tool'].includes(msg.role))
     .map((msg) => {
-      // Check for BMC ID in tool messages
-      if (msg.role === 'tool' && msg.content) {
+      
+      // A. HANDLE TOOL OUTPUT (Respon dari function)
+      if (msg.role === 'tool') {
+        // Cek ID BMC jika ada
         try {
-          const parsed = JSON.parse(msg.content);
-          if (parsed.bmcId) detectedBmcId = parsed.bmcId;
-        } catch (e) {
-          // Ignore parse errors
-        }
+          if (msg.content) {
+            const parsed = JSON.parse(msg.content);
+            if (parsed.bmcId) detectedBmcId = parsed.bmcId;
+          }
+        } catch (e) { /* ignore */ }
+        
+        // Tool message WAJIB punya tool_call_id & content (harus string)
         if (!msg.tool_call_id) return null;
-        return { role: 'tool', content: msg.content, tool_call_id: msg.tool_call_id };
+        
+        return { 
+            role: 'tool', 
+            content: msg.content || '', // Pastikan tidak null/undefined
+            tool_call_id: msg.tool_call_id 
+        };
       }
       
-      // Assistant messages
+      // B. HANDLE ASSISTANT (Model response)
       if (msg.role === 'assistant') {
         const hasTool = msg.tool_calls && msg.tool_calls.length > 0;
-        const hasContent = msg.content && msg.content.trim().length > 0;
+        const rawContent = msg.content;
+        const hasContent = rawContent && rawContent.trim().length > 0;
+        
+        // Skip jika pesan kosong total
         if (!hasTool && !hasContent) return null;
         
         const m = { role: 'assistant' };
-        if (hasTool) m.tool_calls = msg.tool_calls;
-        if (hasContent) m.content = msg.content;
+        
+        // --- FIX CRITICAL: REKONSTRUKSI TOOL CALLS ---
+        if (hasTool) {
+            m.tool_calls = msg.tool_calls.map(tc => {
+                // Pastikan arguments adalah STRING. 
+                // Jika MongoDB menyimpannya sebagai Object, kita harus stringify balik.
+                let argsString = tc.function.arguments;
+                if (typeof argsString !== 'string') {
+                    argsString = JSON.stringify(argsString);
+                }
+
+                return {
+                    id: tc.id,             
+                    type: tc.type || 'function',
+                    function: {
+                        name: tc.function.name,
+                        arguments: argsString // <--- INI KUNCINYA (Harus String)
+                    }
+                };
+            });
+        }
+
+        // --- FIX CONTENT NULLABILITY ---
+        if (hasContent) {
+            m.content = rawContent;
+        } else {
+            m.content = null; // Wajib null jika tool_calls ada tapi text tidak ada
+        }
+
         return m;
       }
       
-      // User messages
+      // C. HANDLE USER
       if (msg.role === 'user') {
         return { role: 'user', content: msg.content };
       }
@@ -132,3 +174,5 @@ export async function buildAIMessageHistory(chatId) {
 export function userOwnsChat(chat, userId) {
   return chat && chat.userId === userId;
 }
+
+
