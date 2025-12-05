@@ -7,7 +7,8 @@ import { validateStreamChatRequest } from '../validations/ai.validation.js';
  * POST /api/chat - Stream chat with AI
  */
 export async function streamChat(req, res) {
-  const { message, chatId } = req.body;
+  // 1. TERIMA LOCATION DARI BODY
+  const { message, chatId, location } = req.body;
   const { userId } = getAuth(req);
 
   // Validate request
@@ -20,8 +21,13 @@ export async function streamChat(req, res) {
     });
   }
 
+  // 2. SETUP KOORDINAT DEFAULT
+  // Jika location null/undefined, gunakan 0,0,0
+  const userCoordinates = location || { lat: -6.212249928667231, lon: 106.79734681365301 };
+
   console.log(`\n--- START STREAM CHAT (User: ${userId}) ---`);
   console.log(`[INPUT] "${message.substring(0, 40)}..."`);
+  console.log(`[INFO] 📍 Coordinates: ${JSON.stringify(userCoordinates)}`);
 
   try {
     let currentChatId;
@@ -100,7 +106,10 @@ export async function streamChat(req, res) {
           : {};
 
         console.log(`[EXEC] ⚙️ ${fnName}`);
-        const toolResult = await aiService.executeTool(fnName, fnArgs, userId);
+        
+        // 3. OPER userCoordinates KE DALAM SERVICE EXECUTOR
+        // Pastikan update juga ai.service.js untuk menerima parameter ke-4 ini
+        const toolResult = await aiService.executeTool(fnName, fnArgs, userId, userCoordinates);
         const toolContent = JSON.stringify(toolResult);
 
         // Save tool result
