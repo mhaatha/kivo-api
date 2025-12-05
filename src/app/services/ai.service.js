@@ -1,135 +1,120 @@
 import OpenAI from 'openai';
 import axios from 'axios';
-import { BmcPost } from '../models/bmc.model.js';
+import mongoose from 'mongoose';
+import { BmcPost } from '../models/bmc.model.js'; 
 
-// API Configuration
+// --- CONFIGURATION ---
 const KOLOSAL_API_KEY = process.env.KOLOSAL_API_KEY;
-const KOLOSAL_API_ENDPOINT =
-  process.env.KOLOSAL_API_ENDPOINT || 'https://api.kolosal.ai/v1';
-const KOLOSAL_MODEL_NAME = process.env.KOLOSAL_MODEL_NAME || 'Kimi K2';
-
-// Google Search Configuration
+const KOLOSAL_API_ENDPOINT = process.env.KOLOSAL_API_ENDPOINT || 'https://api.kolosal.ai/v1';
+const KOLOSAL_MODEL_NAME = process.env.KOLOSAL_MODEL_NAME || 'Kimi K2'; 
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
 const GOOGLE_CX = process.env.GOOGLE_CX;
 
-// Create OpenAI client with Kolosal endpoint
 export const openaiClient = new OpenAI({
   apiKey: KOLOSAL_API_KEY,
   baseURL: KOLOSAL_API_ENDPOINT,
 });
 
-// System prompt for BMC Strategic Partner
+// --- IMPROVED SYSTEM PROMPT ---
 export const BMC_SYSTEM_PROMPT = `
-### 1. IDENTITY & PERSONA (Rekan Bisnis Strategis)
-Anda adalah **Strategic Business Partner & Risk Analyst**.
-* **Tone:** Profesional namun kasual/luwes (seperti rekan kerja senior atau co-founder). Tidak kaku, tidak robotik.
-* **Mindset:** Kritis, berorientasi solusi, dan tajam dalam melihat celah bisnis.
-* **Tugas:** Mengobrol santai untuk mematangkan ide bisnis teman Anda (pengguna) sambil diam-diam menyusun *Business Model Canvas (BMC)*.
+### 1. IDENTITY & MISSION
+Anda adalah **Strategic Business Partner**.
+* **Tugas Utama:** Berdiskusi santai untuk mematangkan ide bisnis User, DAN **WAJIB** mencatat poin-poin penting ke dalam Database BMC secara otomatis.
+* **Mindset:** Jangan hanya memberi saran. Anda adalah "Notulen Cerdas" yang mencatat ide User ke dalam struktur data tanpa disuruh.
 
-### 2. THE FOURTH WALL (ATURAN INVISIBILITAS SISTEM - PENTING)
-Anda dilarang keras merusak ilusi percakapan manusia.
-1.  **JANGAN** pernah menyebut diri Anda sebagai AI, Bot, Sistem, Model Bahasa, atau Aplikasi.
-2.  **JANGAN** pernah menyebutkan kata-kata teknis internal seperti: "Database", "JSON", "Prompt", "Algoritma", "Update data", "Simpan data", "Lat/Long", atau "Instruksi".
-3.  **JANGAN** pernah berkata "Saya telah menyimpan data Customer Segment Anda".
-    * *Ganti dengan:* "Oke, target audiensnya jelas. Lanjut, gimana cara kita bikin mereka loyal?"
-4.  **JANGAN** menjelaskan batasan sistem Anda.
+### 2. TRIGGER TOOL (SANGAT PENTING)
+Setiap kali User membicarakan ide bisnis, strategi, harga, atau target pasar, Anda **HARUS** memanggil function (tool).
+* **JANGAN** menunggu User meminta "simpan ini".
+* **JANGAN** hanya membalas dengan teks panjang. Lakukan *Action* penyimpanan data bersamaan dengan balasan Anda.
 
-### 3. STRICT TOPIC GUARDRAILS (NATURAL REDIRECTION)
-Anda hanya membahas **Bisnis & BMC**. Jika pengguna melenceng, alihkan secara natural layaknya teman yang ingin fokus kerja.
+### 3. DATABASE LOGIC (ID HANDLING)
+1. **Cek History:** Apakah sudah ada **bmcId** di percakapan sebelumnya?
+2. **Logic:**
+   * **No ID:** Panggil \`postBmcToDatabase\` (Create New).
+   * **Has ID:** Panggil \`updateBmcToDatabase\` (Update Existing) dengan ID tersebut.
+3. **Strict:** Jangan pernah membuat ID palsu.
 
-### 4. CORE INTELLIGENCE: 9 BMC BLOCKS
-Gali data ini lewat obrolan mengalir:
-1. Customer Segments
-2. Value Propositions
-3. Channels
-4. Customer Relationships
-5. Revenue Streams
-6. Key Resources
-7. Key Activities
-8. Key Partnerships
-9. Cost Structure
+### 4. DATA MAPPING (STRICT FORMAT)
+Saat mengekstrak data untuk tool \`bmcData\`, gunakan **HANYA** tag berikut (sesuai Schema Database, Tanpa Spasi):
 
-### 5. SILENT DATA LOGIC (CAPTURE & LOCATION AWARENESS)
-Meskipun obrolan santai, otak Anda bekerja mencatat data.
-Setiap kali ada info valid BMC dan perlu disimpan (Create New):
+1. **CustomerSegments** (Bukan "Customer Segments")
+2. **ValuePropositions**
+3. **Channels**
+4. **CustomerRelationships**
+5. **RevenueStreams**
+6. **KeyResources**
+7. **KeyActivities**
+8. **KeyPartnerships**
+9. **CostStructure**
 
-**LANGKAH KRUSIAL (URUTAN EKSEKUSI):**
-1. **Cek Lokasi Dulu:** Sebelum membuat BMC baru, Anda WAJIB memanggil tool \`getUserCoordinates\` untuk mendapatkan lokasi pengguna.
-2. **Simpan Data:**
-   * Jika \`getUserCoordinates\` BERHASIL: Panggil \`postBmcToDatabase\` dengan menyertakan koordinat yang didapat.
-   * Jika \`getUserCoordinates\` GAGAL/ERROR: Panggil \`postBmcToDatabase\` dengan default koordinat (lat: -6.212249928667231, lon: 106.79734681365301).
-3. **Update (Jika sudah ada ID):** Langsung panggil \`updateBmcToDatabase\`.
+Contoh pemetaan yang BENAR untuk tool:
+[{ "tag": "CostStructure", "content": "Modal awal 5 juta untuk booth dan bahan baku." }]
 
-**INVISIBLE:** Proses ini terjadi 100% di latar belakang. User tidak boleh tahu Anda sedang mengecek lokasi atau menyimpan database.
+Contoh SALAH (Akan Error):
+[{ "tag": "Cost Structure", "content": "..." }] -> (Salah karena ada spasi)
 
-### 6. CONTOH GAYA BICARA (NATURAL)
-* *Salah (Robotik):* "Saya sedang mengambil koordinat GPS Anda lalu menyimpan data."
-* *Benar (Partner):* "Ide bagus. Lokasi usahanya strategis juga sepertinya. Btw, soal biaya operasional sudah dihitung belum?"
+### 5. GAYA BICARA
+Profesional, santai, suportif. Jangan menyebut istilah teknis seperti "JSON", "Database", "Tag", atau "Enum".
 `;
 
-// Tool: Web Search
+// --- TOOL FUNCTIONS ---
+
+// 1. Get Coordinates
+export async function getUserCoordinates(userId) {
+  console.log(`📍 [LOCATION] Retrieving coordinates for user: ${userId}`);
+  try {
+    const mockCoords = { lat: -6.2088, lon: 106.8456 };
+    return JSON.stringify(mockCoords); 
+  } catch (error) {
+    return JSON.stringify({ error: "Location not found, using default." });
+  }
+}
+
+// 2. Web Search
 export async function performWebSearch(query) {
   if (!GOOGLE_API_KEY || !GOOGLE_CX) {
-    console.log('[Search Tool] Google API not configured');
-    return JSON.stringify([{ error: 'Search not configured' }]);
+    // console.warn("⚠️ Google Search belum dikonfigurasi.");
+    return JSON.stringify([{ error: 'Search functionality disabled.' }]);
   }
-  // ... (kode search sama seperti sebelumnya) ...
+  
   const url = `https://www.googleapis.com/customsearch/v1?key=${GOOGLE_API_KEY}&cx=${GOOGLE_CX}&q=${encodeURIComponent(query)}`;
-  try {
-    console.log(`[Search Tool] 🔎 Searching: ${query}`);
-    const response = await axios.get(url);
-    const results = response.data.items
-      ? response.data.items.slice(0, 4).map((item) => ({
-          title: item.title,
-          snippet: item.snippet,
-          link: item.link,
-        }))
-      : [];
-    return JSON.stringify(results);
-  } catch (error) {
-    console.error('❌ Search API Error:', error.message);
-    return JSON.stringify([{ error: 'Failed to fetch search data.' }]);
-  }
-}
-
-// Tool: Get User Coordinates (NEW FUNCTION)
-export async function getUserCoordinates(userId) {
-  console.log(`📍 [LOCATION] Attempting to retrieve coordinates for user: ${userId}`);
   
   try {
-    // Contoh GAGAL (Default behaviour jika data tidak dikirim frontend):
-    throw new Error("Location data not provided by client.");
+    console.log(`🔎 [SEARCH] "${query}"`);
+    const response = await axios.get(url, { timeout: 5000 });
     
+    if (!response.data.items) return JSON.stringify([{ message: "No results found." }]);
+
+    const results = response.data.items.slice(0, 3).map((item) => ({
+        title: item.title,
+        snippet: item.snippet,
+        link: item.link,
+      }));
+    return JSON.stringify(results);
   } catch (error) {
-    console.warn(`⚠️ [LOCATION] Failed: ${error.message}. Using defaults.`);
-    return JSON.stringify({ error: "Location not found" });
+    console.error(`❌ [SEARCH ERROR] ${error.message}`);
+    return JSON.stringify([{ error: 'Failed to retrieve search results.' }]);
   }
 }
 
-// Tool: Create BMC (UPDATED with Coordinates)
+// 3. Post BMC (Create New)
 export async function postBmcToDatabase(bmcData, coordinates, userId) {
-  // Koordinat default
   let finalCoord = { lat: -6.212249928667231, lon: 106.79734681365301 };
 
-  // Cek apakah koordinat valid dikirim dari tool getUserCoordinates
-  if (coordinates && typeof coordinates.lat === 'number' && typeof coordinates.lon === 'number') {
-    finalCoord = { ...finalCoord, ...coordinates };
-    console.log('📍 [POST] Using detected coordinates:', finalCoord);
-  } else {
-    console.log('📍 [POST] Using DEFAULT coordinates (0,0).');
+  if (coordinates && typeof coordinates === 'object') {
+    if (typeof coordinates.lat === 'number' && typeof coordinates.lon === 'number') {
+      finalCoord = { lat: coordinates.lat, lon: coordinates.lon };
+    }
   }
 
   try {
-    console.log('📝 [POST] Creating new BMC. Items:', bmcData?.length || 0);
-    if (!bmcData || !Array.isArray(bmcData)) {
-      return { status: 'failed', message: 'Invalid data.' };
-    }
+    console.log('📝 [POST] Creating BMC items:', bmcData?.length || 0);
 
     const newBmcPost = new BmcPost({
-      coordinat: finalCoord, // Menggunakan koordinat dinamis
+      coordinate: finalCoord, 
       authorId: userId,
       isPublic: false,
-      items: bmcData,
+      items: Array.isArray(bmcData) ? bmcData : [], 
     });
 
     const savedBmcPost = await newBmcPost.save();
@@ -137,96 +122,109 @@ export async function postBmcToDatabase(bmcData, coordinates, userId) {
 
     return {
       status: 'success',
-      system_note:
-        'BMC created. SAVE THIS ID TO MEMORY: ' + savedBmcPost._id.toString(),
-      bmcId: savedBmcPost._id.toString(),
+      system_note: `BMC created successfully with ID: ${savedBmcPost._id.toString()}. You MUST use this ID for any future updates in this session.`,
+      bmcId: savedBmcPost._id.toString(), 
     };
   } catch (error) {
-    console.error('❌ Error Post BMC:', error);
-    return { status: 'failed', message: error.message };
+    console.error('❌ Error Post BMC:', error.message);
+    // Return detail error ke AI supaya dia tahu kalau salah format tag
+    return { status: 'failed', message: `Database Validation Error: ${error.message}. Ensure tags match the strict enum list (e.g. 'CostStructure', no spaces).` };
   }
 }
 
-// Tool: Update BMC (Sama seperti sebelumnya)
+// 4. Update BMC
 export async function updateBmcToDatabase(bmcId, bmcData, userId) {
   try {
-    console.log(
-      `📝 [UPDATE] Updating BMC ID: ${bmcId}. Items: ${bmcData?.length || 0}`,
-    );
-    if (!bmcId) return { status: 'failed', message: 'BMC ID required.' };
-    if (!bmcData || !Array.isArray(bmcData)) {
-      return { status: 'failed', message: 'BMC data empty.' };
+    console.log(`📝 [UPDATE] Attempting update for ID: ${bmcId}`);
+    
+    if (!bmcId || !mongoose.Types.ObjectId.isValid(bmcId)) {
+       console.warn(`⚠️ [UPDATE REJECTED] Invalid ID format: ${bmcId}`);
+       return { 
+         status: 'failed', 
+         message: 'ERROR: Invalid MongoDB ID format. Please use postBmcToDatabase to create a new record instead.' 
+       };
     }
-
+    
     const updatedBmcPost = await BmcPost.findOneAndUpdate(
       { _id: bmcId, authorId: userId },
-      { $set: { items: bmcData, updatedAt: new Date() } },
-      { new: true, runValidators: true },
+      { 
+        $push: { items: { $each: Array.isArray(bmcData) ? bmcData : [] } }, 
+        $set: { updatedAt: new Date() } 
+      },
+      { new: true, runValidators: true } // runValidators penting agar error enum terdeteksi
     );
 
     if (!updatedBmcPost) {
-      return { status: 'failed', message: 'BMC not found or unauthorized.' };
+        return { status: 'failed', message: 'BMC Document not found.' };
     }
 
-    console.log('✅ [UPDATE] Success.');
+    console.log('✅ [UPDATE] Success. Items added:', bmcData.length);
     return {
       status: 'success',
-      system_note: 'BMC data updated successfully.',
       bmcId: updatedBmcPost._id.toString(),
+      item_count: updatedBmcPost.items.length
     };
   } catch (error) {
-    console.error('❌ Error Update BMC:', error);
-    return { status: 'failed', message: error.message };
+    console.error('❌ Error Update BMC:', error.message);
+    return { status: 'failed', message: `Database Validation Error: ${error.message}. Ensure tags match the strict enum list.` };
   }
 }
 
-// Tool Definitions for OpenAI
+
+// --- TOOL DEFINITIONS (SCHEMA) ---
+// PERBAIKAN: Menambahkan enum eksplisit di definisi tool agar AI tidak salah ketik
+const BMC_TAGS_ENUM = [
+  'CustomerSegments',
+  'ValuePropositions',
+  'Channels',
+  'CustomerRelationships',
+  'RevenueStreams',
+  'KeyResources',
+  'KeyActivities',
+  'KeyPartnerships',
+  'CostStructure'
+];
+
 export const AVAILABLE_TOOLS = [
-  // 1. Tool Baru: Get Coordinates
   {
     type: 'function',
     function: {
       name: 'getUserCoordinates',
-      description: 'Retrieve user latitude and longitude from the system/frontend context before creating a BMC.',
-      parameters: {
-        type: 'object',
-        properties: {}, // Tidak butuh parameter input, mengambil dari context userId
-      },
+      description: 'Get user lat/lon coordinates to attach location to the BMC.',
+      parameters: { type: 'object', properties: {} },
     },
   },
-  // 2. Tool Update: Post BMC (Sekarang menerima coordinates)
   {
     type: 'function',
     function: {
       name: 'postBmcToDatabase',
-      description:
-        'Save initial BMC draft. Call getUserCoordinates FIRST. If coordinates found, pass them here. If not, pass default 0,0.',
+      description: 'Create a NEW BMC document. Call this whenever new business points are discussed and no BMC ID exists yet.',
       parameters: {
         type: 'object',
         properties: {
           coordinates: {
             type: 'object',
-            description: 'The lat/lon obtained from getUserCoordinates tool.',
-            properties: {
-              lat: { type: 'number' },
-              lon: { type: 'number' }
-            },
-            required: ['lat', 'lon']
+            properties: { lat: { type: 'number' }, lon: { type: 'number' } },
+            description: "Coordinates from getUserCoordinates."
           },
           bmcData: {
             type: 'array',
-            description: 'List of BMC aspect objects identified so far.',
+            description: "List of business components extracted from conversation.",
             items: {
               type: 'object',
-              properties: {
-                tag: { type: 'string' },
-                content: { type: 'string' },
+              properties: { 
+                tag: { 
+                  type: 'string', 
+                  enum: BMC_TAGS_ENUM, // STRICT ENUM DI SINI
+                  description: "Must be one of the strict CamelCase tags (e.g. 'CostStructure'). Do not use spaces."
+                }, 
+                content: { type: 'string' } 
               },
               required: ['tag', 'content'],
             },
           },
         },
-        required: ['bmcData'], // coordinates opsional di level schema JSON, tapi logic prompt menyarankannya
+        required: ['bmcData'],
       },
     },
   },
@@ -234,19 +232,22 @@ export const AVAILABLE_TOOLS = [
     type: 'function',
     function: {
       name: 'updateBmcToDatabase',
-      description:
-        'Update BMC data. Call this whenever new aspects are added.',
+      description: 'Append items to an EXISTING BMC. REQUIRES a valid 24-char hex ID.',
       parameters: {
         type: 'object',
         properties: {
-          bmcId: { type: 'string' },
+          bmcId: { type: 'string', description: "The existing MongoDB ID." },
           bmcData: {
             type: 'array',
             items: {
               type: 'object',
-              properties: {
-                tag: { type: 'string' },
-                content: { type: 'string' },
+              properties: { 
+                tag: { 
+                  type: 'string', 
+                  enum: BMC_TAGS_ENUM, // STRICT ENUM DI SINI
+                  description: "Must be one of the strict CamelCase tags."
+                }, 
+                content: { type: 'string' } 
               },
               required: ['tag', 'content'],
             },
@@ -260,50 +261,45 @@ export const AVAILABLE_TOOLS = [
     type: 'function',
     function: {
       name: 'performWebSearch',
-      description: 'Search for factual data.',
+      description: 'Search Google for market facts.',
       parameters: {
         type: 'object',
-        properties: {
-          query: { type: 'string' },
-        },
+        properties: { query: { type: 'string' } },
         required: ['query'],
       },
     },
   },
 ];
 
-// Execute tool by name
-export async function executeTool(toolName, args, userId) {
+// --- EXECUTOR ---
+export async function executeTool(toolName, args, userId, clientCoordinates) {
+  const safeArgs = args || {};
+  
   switch (toolName) {
-    case 'getUserCoordinates':
+    case 'getUserCoordinates': 
         return await getUserCoordinates(userId);
-    case 'postBmcToDatabase':
-      // Mapping args.coordinates ke fungsi
-      return await postBmcToDatabase(args.bmcData, args.coordinates, userId);
-    case 'updateBmcToDatabase':
-      return await updateBmcToDatabase(args.bmcId, args.bmcData, userId);
-    case 'performWebSearch':
-      return await performWebSearch(args.query);
-    default:
-      return { error: 'Unknown function' };
+    case 'postBmcToDatabase': 
+        // Menggunakan clientCoordinates yang dipassing dari Controller
+        return await postBmcToDatabase(safeArgs.bmcData, clientCoordinates, userId);
+    case 'updateBmcToDatabase': 
+        return await updateBmcToDatabase(safeArgs.bmcId, safeArgs.bmcData, userId);
+    case 'performWebSearch': 
+        return await performWebSearch(safeArgs.query);
+    default: 
+        return JSON.stringify({ error: `Function ${toolName} not found` });
   }
 }
 
-// ... (Sisa fungsi getChatCompletion dll sama) ...
 export async function getChatCompletion(messages, stream = false) {
   return openaiClient.chat.completions.create({
     model: KOLOSAL_MODEL_NAME,
     messages,
     tools: AVAILABLE_TOOLS,
-    tool_choice: 'auto',
+    tool_choice: 'auto', // Bisa diubah ke 'required' jika ingin memaksa, tapi 'auto' biasanya cukup dengan prompt yang kuat
     stream,
   });
 }
 
 export async function getStreamingCompletion(messages) {
-  return openaiClient.chat.completions.create({
-    model: KOLOSAL_MODEL_NAME,
-    messages,
-    stream: true,
-  });
+  return getChatCompletion(messages, true);
 }
