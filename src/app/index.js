@@ -14,7 +14,7 @@ app.use(
     origin: [
       'http://localhost:3000',
       'http://127.0.0.1:3000',
-      process.env.WEB_URL,
+      process.env.WEB_URL || 'https://kivoai.netlify.app',
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true,
