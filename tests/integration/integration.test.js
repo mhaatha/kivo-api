@@ -294,16 +294,15 @@ describeIfMongo('Integration Tests', () => {
       expect(createAIProvider).toBeDefined();
     });
 
-    it('should have 4 available tools', async () => {
+    it('should have 3 available tools', async () => {
       const { getTools } = await import('../../src/app/ai/tools/index.js');
       
       const tools = getTools('test-user-id');
-      expect(Object.keys(tools)).toHaveLength(4);
+      expect(Object.keys(tools)).toHaveLength(3);
       
       const toolNames = Object.keys(tools);
-      expect(toolNames).toContain('getUserCoordinates');
-      expect(toolNames).toContain('postBmcToDatabase');
-      expect(toolNames).toContain('updateBmcToDatabase');
+      expect(toolNames).toContain('generateAndSaveBMC');
+      expect(toolNames).toContain('updateBMC');
       expect(toolNames).toContain('performWebSearch');
     });
   });
@@ -500,15 +499,19 @@ describeIfAI('AI Response Tests (Requires API Credits)', () => {
         console.log(`    Args: ${tc.function.arguments.substring(0, 200)}...`);
         
         // Verify it's a valid BMC tool
-        expect(['postBmcToDatabase', 'updateBmcToDatabase', 'performWebSearch']).toContain(tc.function.name);
+        expect(['generateAndSaveBMC', 'updateBMC', 'performWebSearch']).toContain(tc.function.name);
         
         // If it's a BMC tool, verify the arguments
-        if (tc.function.name === 'postBmcToDatabase' || tc.function.name === 'updateBmcToDatabase') {
+        if (tc.function.name === 'generateAndSaveBMC') {
           const args = JSON.parse(tc.function.arguments);
-          expect(args.items).toBeDefined();
-          expect(Array.isArray(args.items)).toBe(true);
+          expect(args.businessContext).toBeDefined();
+          expect(typeof args.businessContext).toBe('string');
           
-          console.log(`    Items count: ${args.items.length}`);
+          console.log(`    Context length: ${args.businessContext.length}`);
+        } else if (tc.function.name === 'updateBMC') {
+          const args = JSON.parse(tc.function.arguments);
+          expect(args.bmcId).toBeDefined();
+          expect(args.updateContext).toBeDefined();
         }
       }
     } else {

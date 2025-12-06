@@ -6,7 +6,7 @@ import { createOpenRouter } from '@openrouter/ai-sdk-provider';
  */
 export const aiConfig = {
   provider: 'openrouter',
-  model: process.env.OPENROUTER_MODEL_NAME || 'moonshotai/kimi-k2-0905',
+  model: process.env.OPENROUTER_MODEL_NAME || 'anthropic/claude-sonnet-4.5',
   apiKey: process.env.OPENROUTER_API_KEY,
   maxSteps: 10,
   toolChoice: 'auto',

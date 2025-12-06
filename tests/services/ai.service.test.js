@@ -1,60 +1,80 @@
 import { describe, it, expect } from 'vitest';
-import { BMC_TAGS } from '../setup.js';
 
-// Test AI service constants and functions using static definitions to avoid mongoose issues
+// Test AI service constants and functions using static definitions
 describe('AI Service', () => {
   // Define constants to test against (mirrors actual implementation)
   const BMC_SYSTEM_PROMPT = `
-### 1. IDENTITY & PERSONA (Rekan Bisnis Strategis)
-Anda adalah **Strategic Business Partner & Risk Analyst**.
-* **Tone:** Profesional namun kasual/luwes (seperti rekan kerja senior atau co-founder). Tidak kaku, tidak robotik.
+### IDENTITY & PERSONA
+Anda adalah **Strategic Business Partner** — rekan diskusi bisnis yang kritis namun supportive.
+Tone: Profesional tapi santai, seperti co-founder atau mentor bisnis.
 
-### 2. THE FOURTH WALL (ATURAN INVISIBILITAS SISTEM - PENTING)
-Anda dilarang keras merusak ilusi percakapan manusia.
+### ATURAN PENTING
+1. **JANGAN** pernah menyebut diri sebagai AI/Bot/Sistem
+2. **JANGAN** menyebut istilah teknis: Database, JSON, API, Tool, Function
+3. **JANGAN** bilang "Saya akan menyimpan data Anda" — cukup lakukan secara natural
+4. Fokus HANYA pada topik bisnis. Jika user melenceng, arahkan kembali dengan halus.
 
-### 3. STRICT TOPIC GUARDRAILS (NATURAL REDIRECTION)
-Anda hanya membahas **Bisnis & BMC**.
+### TUGAS UTAMA
+Bantu user mematangkan ide bisnis melalui percakapan natural, sambil mengumpulkan informasi untuk 9 blok Business Model Canvas:
 
-### 4. CORE INTELLIGENCE: 9 BMC BLOCKS
-Gali data ini lewat obrolan mengalir (jangan interogasi):
-1. Customer Segments
-2. Value Propositions
-3. Channels
-4. Customer Relationships
-5. Revenue Streams
-6. Key Resources
-7. Key Activities
-8. Key Partnerships
-9. Cost Structure
+1. **Customer Segments** — Siapa target pelanggan?
+2. **Value Propositions** — Apa nilai unik yang ditawarkan?
+3. **Channels** — Bagaimana menjangkau pelanggan?
+4. **Customer Relationships** — Bagaimana membangun hubungan?
+5. **Revenue Streams** — Dari mana pendapatan?
+6. **Key Resources** — Apa sumber daya kunci?
+7. **Key Activities** — Aktivitas utama apa yang diperlukan?
+8. **Key Partnerships** — Siapa partner strategis?
+9. **Cost Structure** — Apa saja biaya utama?
 
-### 5. SILENT DATA LOGIC (CAPTURE AS YOU GO)
-Meskipun obrolan santai, otak Anda bekerja mencatat data.
-* *No ID:* Panggil postBmcToDatabase.
-* *Has ID:* Panggil updateBmcToDatabase.
+### STRATEGI PERCAKAPAN
+
+**FASE 1: DISCOVERY (Wajib sebelum menyimpan BMC)**
+Gali informasi dengan pertanyaan natural.
+
+**FASE 2: VALIDATION**
+Setelah dapat info dasar, validasi pemahaman.
+
+**FASE 3: SAVE BMC**
+HANYA panggil generateAndSaveBMC ketika sudah punya informasi CUKUP.
+
+### TOOL USAGE
+
+**generateAndSaveBMC**
+- Panggil HANYA setelah info cukup
+- Parameter businessContext: rangkuman lengkap dari percakapan
+
+**updateBMC**  
+- Gunakan untuk update BMC yang sudah ada
+- Parameter bmcId: ID dari hasil generateAndSaveBMC sebelumnya
+- Parameter updateContext: perubahan yang diminta user
+
+**performWebSearch**
+- Gunakan untuk riset pasar, data kompetitor, atau validasi asumsi bisnis
 `;
 
   const AVAILABLE_TOOLS = [
     {
       type: 'function',
       function: {
-        name: 'postBmcToDatabase',
-        description: 'Save initial BMC draft to database.',
+        name: 'generateAndSaveBMC',
+        description: 'Generate and save a complete Business Model Canvas to database.',
         parameters: {
           type: 'object',
-          properties: { bmcData: { type: 'array' } },
-          required: ['bmcData'],
+          properties: { businessContext: { type: 'string' } },
+          required: ['businessContext'],
         },
       },
     },
     {
       type: 'function',
       function: {
-        name: 'updateBmcToDatabase',
-        description: 'Update BMC data. MUST INCLUDE ALL ASPECTS.',
+        name: 'updateBMC',
+        description: 'Update an existing Business Model Canvas with new information.',
         parameters: {
           type: 'object',
-          properties: { bmcId: { type: 'string' }, bmcData: { type: 'array' } },
-          required: ['bmcId', 'bmcData'],
+          properties: { bmcId: { type: 'string' }, updateContext: { type: 'string' } },
+          required: ['bmcId', 'updateContext'],
         },
       },
     },
@@ -62,7 +82,7 @@ Meskipun obrolan santai, otak Anda bekerja mencatat data.
       type: 'function',
       function: {
         name: 'performWebSearch',
-        description: 'Search for factual data, market statistics.',
+        description: 'Search for market research, competitor analysis, or industry data.',
         parameters: {
           type: 'object',
           properties: { query: { type: 'string' } },
@@ -75,12 +95,12 @@ Meskipun obrolan santai, otak Anda bekerja mencatat data.
   // Pure function for testing
   const executeTool = async (toolName, args, userId) => {
     switch (toolName) {
-      case 'postBmcToDatabase':
-        return { status: 'success', bmcId: 'test123' };
-      case 'updateBmcToDatabase':
-        return { status: 'success' };
+      case 'generateAndSaveBMC':
+        return { status: 'success', bmcId: 'test123', blocksGenerated: 9 };
+      case 'updateBMC':
+        return { status: 'success', bmcId: args.bmcId, blocksUpdated: 3 };
       case 'performWebSearch':
-        return JSON.stringify([{ title: 'Test', snippet: 'Result' }]);
+        return { status: 'success', results: [{ title: 'Test', snippet: 'Result' }] };
       default:
         return { error: 'Unknown function' };
     }
@@ -89,10 +109,6 @@ Meskipun obrolan santai, otak Anda bekerja mencatat data.
   describe('BMC_SYSTEM_PROMPT', () => {
     it('should contain Strategic Business Partner identity', () => {
       expect(BMC_SYSTEM_PROMPT).toContain('Strategic Business Partner');
-    });
-
-    it('should contain Risk Analyst identity', () => {
-      expect(BMC_SYSTEM_PROMPT).toContain('Risk Analyst');
     });
 
     it('should contain all 9 BMC blocks', () => {
@@ -107,24 +123,33 @@ Meskipun obrolan santai, otak Anda bekerja mencatat data.
       expect(BMC_SYSTEM_PROMPT).toContain('Cost Structure');
     });
 
-    it('should contain invisibility rules (Fourth Wall)', () => {
-      expect(BMC_SYSTEM_PROMPT).toContain('FOURTH WALL');
-      expect(BMC_SYSTEM_PROMPT).toContain('INVISIBILITAS');
-    });
-
-    it('should contain topic guardrails', () => {
-      expect(BMC_SYSTEM_PROMPT).toContain('GUARDRAILS');
+    it('should contain important rules about AI identity', () => {
+      expect(BMC_SYSTEM_PROMPT).toContain('JANGAN');
+      expect(BMC_SYSTEM_PROMPT).toContain('AI/Bot/Sistem');
     });
 
     it('should mention professional yet casual tone', () => {
       expect(BMC_SYSTEM_PROMPT).toContain('Profesional');
-      expect(BMC_SYSTEM_PROMPT).toContain('kasual');
+      expect(BMC_SYSTEM_PROMPT).toContain('santai');
     });
 
-    it('should contain silent data logic instructions', () => {
-      expect(BMC_SYSTEM_PROMPT).toContain('SILENT DATA LOGIC');
-      expect(BMC_SYSTEM_PROMPT).toContain('postBmcToDatabase');
-      expect(BMC_SYSTEM_PROMPT).toContain('updateBmcToDatabase');
+    it('should contain conversation strategy phases', () => {
+      expect(BMC_SYSTEM_PROMPT).toContain('DISCOVERY');
+      expect(BMC_SYSTEM_PROMPT).toContain('VALIDATION');
+      expect(BMC_SYSTEM_PROMPT).toContain('SAVE BMC');
+    });
+
+    it('should mention generateAndSaveBMC tool', () => {
+      expect(BMC_SYSTEM_PROMPT).toContain('generateAndSaveBMC');
+    });
+
+    it('should mention updateBMC tool', () => {
+      expect(BMC_SYSTEM_PROMPT).toContain('updateBMC');
+    });
+
+    it('should emphasize calling tool only when info is sufficient', () => {
+      expect(BMC_SYSTEM_PROMPT).toContain('HANYA');
+      expect(BMC_SYSTEM_PROMPT).toContain('info cukup');
     });
   });
 
@@ -133,39 +158,40 @@ Meskipun obrolan santai, otak Anda bekerja mencatat data.
       expect(AVAILABLE_TOOLS).toHaveLength(3);
     });
 
-    it('should contain postBmcToDatabase tool', () => {
-      const postTool = AVAILABLE_TOOLS.find((t) => t.function.name === 'postBmcToDatabase');
-      expect(postTool).toBeDefined();
-      expect(postTool.type).toBe('function');
-      expect(postTool.function.parameters.required).toContain('bmcData');
+    it('should contain generateAndSaveBMC tool', () => {
+      const tool = AVAILABLE_TOOLS.find((t) => t.function.name === 'generateAndSaveBMC');
+      expect(tool).toBeDefined();
+      expect(tool.type).toBe('function');
+      expect(tool.function.parameters.required).toContain('businessContext');
     });
 
-    it('should contain updateBmcToDatabase tool', () => {
-      const updateTool = AVAILABLE_TOOLS.find((t) => t.function.name === 'updateBmcToDatabase');
-      expect(updateTool).toBeDefined();
-      expect(updateTool.function.parameters.required).toContain('bmcId');
-      expect(updateTool.function.parameters.required).toContain('bmcData');
+    it('should contain updateBMC tool', () => {
+      const tool = AVAILABLE_TOOLS.find((t) => t.function.name === 'updateBMC');
+      expect(tool).toBeDefined();
+      expect(tool.function.parameters.required).toContain('bmcId');
+      expect(tool.function.parameters.required).toContain('updateContext');
     });
 
     it('should contain performWebSearch tool', () => {
-      const searchTool = AVAILABLE_TOOLS.find((t) => t.function.name === 'performWebSearch');
-      expect(searchTool).toBeDefined();
-      expect(searchTool.function.parameters.required).toContain('query');
+      const tool = AVAILABLE_TOOLS.find((t) => t.function.name === 'performWebSearch');
+      expect(tool).toBeDefined();
+      expect(tool.function.parameters.required).toContain('query');
     });
 
-    it('postBmcToDatabase should have correct description', () => {
-      const postTool = AVAILABLE_TOOLS.find((t) => t.function.name === 'postBmcToDatabase');
-      expect(postTool.function.description).toContain('Save initial BMC');
+    it('generateAndSaveBMC should have correct description', () => {
+      const tool = AVAILABLE_TOOLS.find((t) => t.function.name === 'generateAndSaveBMC');
+      expect(tool.function.description).toContain('Generate');
+      expect(tool.function.description).toContain('save');
     });
 
-    it('updateBmcToDatabase should mention update', () => {
-      const updateTool = AVAILABLE_TOOLS.find((t) => t.function.name === 'updateBmcToDatabase');
-      expect(updateTool.function.description.toLowerCase()).toContain('update');
+    it('updateBMC should mention update', () => {
+      const tool = AVAILABLE_TOOLS.find((t) => t.function.name === 'updateBMC');
+      expect(tool.function.description.toLowerCase()).toContain('update');
     });
 
-    it('performWebSearch should be for factual data', () => {
-      const searchTool = AVAILABLE_TOOLS.find((t) => t.function.name === 'performWebSearch');
-      expect(searchTool.function.description).toContain('factual');
+    it('performWebSearch should be for market research', () => {
+      const tool = AVAILABLE_TOOLS.find((t) => t.function.name === 'performWebSearch');
+      expect(tool.function.description).toContain('market research');
     });
   });
 
@@ -185,22 +211,23 @@ Meskipun obrolan santai, otak Anda bekerja mencatat data.
       expect(result).toEqual({ error: 'Unknown function' });
     });
 
-    it('should execute postBmcToDatabase', async () => {
-      const result = await executeTool('postBmcToDatabase', { bmcData: [] }, 'user123');
+    it('should execute generateAndSaveBMC', async () => {
+      const result = await executeTool('generateAndSaveBMC', { businessContext: 'test' }, 'user123');
       expect(result.status).toBe('success');
       expect(result.bmcId).toBeDefined();
+      expect(result.blocksGenerated).toBe(9);
     });
 
-    it('should execute updateBmcToDatabase', async () => {
-      const result = await executeTool('updateBmcToDatabase', { bmcId: '123', bmcData: [] }, 'user123');
+    it('should execute updateBMC', async () => {
+      const result = await executeTool('updateBMC', { bmcId: '123', updateContext: 'test' }, 'user123');
       expect(result.status).toBe('success');
+      expect(result.bmcId).toBe('123');
     });
 
     it('should execute performWebSearch', async () => {
       const result = await executeTool('performWebSearch', { query: 'test' }, 'user123');
-      expect(typeof result).toBe('string');
-      const parsed = JSON.parse(result);
-      expect(Array.isArray(parsed)).toBe(true);
+      expect(result.status).toBe('success');
+      expect(Array.isArray(result.results)).toBe(true);
     });
   });
 });
