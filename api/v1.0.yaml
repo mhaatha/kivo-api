@@ -11,35 +11,68 @@ info:
 
     ## Authentication
     Most endpoints require authentication via Bearer token from Better Auth.
+
+    ## Base URL
+    - Development: `http://localhost:3000`
+    - Production: `https://api.kivo.com`
+
+    ## Rate Limiting
+    - 100 requests per minute per IP
+    - 1000 requests per hour per authenticated user
+
+    ## Support
+    For questions and support, please contact the Kivo Team.
+
   version: 1.1.0
   contact:
     name: Kivo Team
+    email: support@kivo.com
+    url: https://kivo.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
 servers:
   - url: http://localhost:3000
     description: Local development server
+  - url: https://api.kivo.com
+    description: Production server
+
+externalDocs:
+  description: Kivo API Documentation
+  url: https://docs.kivo.com
+
 tags:
   - name: Users
-    description: User management
+    description: User management and authentication
   - name: AI Chat
-    description: AI-powered chat for BMC generation
+    description: AI-powered chat for BMC generation with real-time streaming
   - name: BMC
-    description: Business Model Canvas management
+    description: Business Model Canvas management and operations
+  - name: Public
+    description: Public endpoints that don't require authentication
+
 paths:
   # ==================== AI CHAT ENDPOINTS ====================
   /api/chat:
     post:
       tags:
         - AI Chat
-      summary: Stream chat with AI
+      summary: Stream chat with AI assistant
       description: |
-        Send a message to the AI assistant and receive a streaming response.
-        The AI helps users create and refine their Business Model Canvas.
+        Send a message to the AI assistant and receive a streaming response via Server-Sent Events (SSE).
+        The AI helps users create and refine their Business Model Canvas through natural conversation.
 
         **Features:**
-        - Real-time streaming via Server-Sent Events (SSE)
-        - Multi-turn conversation with context
+        - Real-time streaming responses
+        - Multi-turn conversation with context preservation
         - Automatic BMC creation/update via AI tool calls
         - New chat session creation when chatId is not provided
+
+        **Stream Format:**
+        - Content-Type: text/event-stream
+        - Each event contains JSON with chunk, chatId, and isNewChat fields
+        - Stream ends with `data: [DONE]`
       operationId: streamChat
       security:
         - bearerAuth: []
@@ -51,7 +84,7 @@ paths:
               $ref: '#/components/schemas/StreamChatRequest'
             examples:
               newChat:
-                summary: Start a new chat
+                summary: Start a new chat session
                 value:
                   message: 'Saya ingin membuat bisnis delivery makanan sehat'
               continueChat:
@@ -59,17 +92,24 @@ paths:
                 value:
                   message: 'Target pasar saya adalah pekerja kantoran usia 25-35 tahun'
                   chatId: '507f1f77bcf86cd799439011'
+              longMessage:
+                summary: Long message example
+                value:
+                  message: 'Saya ingin membuat bisnis delivery makanan sehat untuk pekerja kantoran di Jakarta. Target saya adalah profesional muda usia 25-35 tahun yang peduli dengan kesehatan dan tidak punya waktu untuk memasak. Saya ingin menggunakan model subscription dengan pengiriman setiap hari.'
       responses:
         '200':
           description: Streaming response via Server-Sent Events
           content:
             text/event-stream:
               schema:
-                $ref: '#/components/schemas/StreamChatResponse'
-              examples:
-                streamChunk:
-                  summary: Single SSE chunk
-                  value: 'data: {"chunk":"Menarik! ","chatId":"507f1f77bcf86cd799439011","isNewChat":true}'
+                type: string
+                description: Server-Sent Events stream
+                example: |
+                  data: {"chunk":"Menarik! ","chatId":"507f1f77bcf86cd799439011","isNewChat":true}
+
+                  data: {"chunk":"Mari kita mulai dengan menganalisis target pasar Anda","chatId":"507f1f77bcf86cd799439011","isNewChat":false}
+
+                  data: [DONE]
         '400':
           description: Invalid request
           content:
@@ -78,13 +118,20 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 success: false
-                message: 'Message cannot be empty.'
+                message: 'Message cannot be empty'
+                details:
+                  - field: message
+                    error: required
+                    message: Message is required
         '401':
-          description: Unauthorized
+          description: Unauthorized - Invalid or missing authentication token
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                message: 'Invalid or missing authentication token'
         '404':
           description: Chat not found
           content:
@@ -93,20 +140,35 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 success: false
-                message: 'Invalid chat session.'
-        '500':
-          description: Server error
+                message: 'Invalid chat session'
+        '429':
+          description: Too many requests - Rate limit exceeded
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                message: 'Rate limit exceeded. Please try again later.'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                message: 'Internal server error'
 
   /api/chat/{chatId}/messages:
     get:
       tags:
         - AI Chat
       summary: Get chat messages
-      description: Retrieve all messages for a specific chat session. Only user and assistant messages are returned.
+      description: |
+        Retrieve all messages for a specific chat session.
+        Only user and assistant messages are returned (system messages are filtered out).
+        Messages are ordered chronologically from oldest to newest.
       operationId: getChatMessages
       security:
         - bearerAuth: []
@@ -117,7 +179,7 @@ paths:
           description: MongoDB ObjectId of the chat session
           schema:
             type: string
-            format: objectid
+            pattern: '^[a-fA-F0-9]{24}$'
             example: '507f1f77bcf86cd799439011'
       responses:
         '200':
@@ -126,6 +188,17 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MessagesResponse'
+              example:
+                success: true
+                data:
+                  - id: '507f1f77bcf86cd799439012'
+                    role: user
+                    content: 'Saya ingin membuat bisnis delivery makanan sehat'
+                    createdAt: '2024-01-01T10:00:00.000Z'
+                  - id: '507f1f77bcf86cd799439013'
+                    role: assistant
+                    content: 'Menarik! Mari kita mulai dengan menganalisis target pasar Anda'
+                    createdAt: '2024-01-01T10:00:05.000Z'
         '401':
           description: Unauthorized
           content:
@@ -140,7 +213,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 success: false
-                message: 'Chat not found.'
+                message: 'Chat not found'
         '500':
           description: Server error
           content:
@@ -152,7 +225,10 @@ paths:
       tags:
         - AI Chat
       summary: Delete a chat
-      description: Delete a chat session and all its messages. Only the owner can delete their chat.
+      description: |
+        Delete a chat session and all its messages.
+        Only the chat owner can delete their chat session.
+        This operation is irreversible.
       operationId: deleteChatById
       security:
         - bearerAuth: []
@@ -163,7 +239,7 @@ paths:
           description: MongoDB ObjectId of the chat session
           schema:
             type: string
-            format: objectid
+            pattern: '^[a-fA-F0-9]{24}$'
             example: '507f1f77bcf86cd799439011'
       responses:
         '200':
@@ -174,13 +250,22 @@ paths:
                 $ref: '#/components/schemas/SuccessResponse'
               example:
                 success: true
-                message: 'Chat deleted successfully.'
+                message: 'Chat deleted successfully'
         '401':
           description: Unauthorized
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Not the chat owner
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                message: 'You do not have permission to delete this chat'
         '404':
           description: Chat not found
           content:
@@ -199,10 +284,31 @@ paths:
       tags:
         - AI Chat
       summary: Get all chats for user
-      description: Retrieve all chat sessions for the authenticated user, ordered by most recent.
+      description: |
+        Retrieve all chat sessions for the authenticated user.
+        Results are ordered by most recent activity (updatedAt descending).
+        Includes chat metadata but not the full message history.
       operationId: getChats
       security:
         - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          description: 'Maximum number of chats to return (default: 20, max: 100)'
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          required: false
+          description: 'Number of chats to skip for pagination (default: 0)'
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
       responses:
         '200':
           description: List of user's chats
@@ -210,6 +316,17 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ChatsResponse'
+              example:
+                success: true
+                data:
+                  - id: '507f1f77bcf86cd799439011'
+                    title: 'Saya ingin membuat bisnis delivery...'
+                    createdAt: '2024-01-01T09:00:00.000Z'
+                    updatedAt: '2024-01-01T10:30:00.000Z'
+                  - id: '507f1f77bcf86cd799439010'
+                    title: 'Platform edukasi online...'
+                    createdAt: '2024-01-01T08:00:00.000Z'
+                    updatedAt: '2024-01-01T09:15:00.000Z'
         '401':
           description: Unauthorized
           content:
@@ -228,8 +345,11 @@ paths:
     post:
       tags:
         - BMC
-      summary: Create new BMC
-      description: Create a new Business Model Canvas. Can be created empty or with initial items.
+      summary: Create new Business Model Canvas
+      description: |
+        Create a new Business Model Canvas post. Can be created empty or with initial BMC items.
+        The author is automatically set to the authenticated user.
+        Supports both public and private visibility settings.
       operationId: createBmc
       security:
         - bearerAuth: []
@@ -245,14 +365,28 @@ paths:
                 value:
                   isPublic: false
               withItems:
-                summary: Create with initial items
+                summary: Create with initial BMC items
                 value:
                   isPublic: false
                   items:
                     - tag: 'CustomerSegments'
-                      content: 'Pekerja kantoran usia 25-35 tahun'
+                      content: 'Pekerja kantoran usia 25-35 tahun di Jakarta'
                     - tag: 'ValuePropositions'
-                      content: 'Makanan sehat dengan pengiriman cepat'
+                      content: 'Makanan sehat dengan pengiriman cepat dalam 30 menit'
+                    - tag: 'Channels'
+                      content: 'Mobile app, website, dan integrasi dengan GoFood'
+                    - tag: 'CustomerRelationships'
+                      content: 'Subscription model dengan customer support 24/7'
+                    - tag: 'RevenueStreams'
+                      content: 'Subscription bulanan, delivery fee, dan partnership commission'
+                    - tag: 'KeyResources'
+                      content: 'Koki profesional, delivery fleet, dan teknologi platform'
+                    - tag: 'KeyActivities'
+                      content: 'Food preparation, delivery operations, dan customer service'
+                    - tag: 'KeyPartnerships'
+                      content: 'Local farms, delivery platforms, dan fitness centers'
+                    - tag: 'CostStructure'
+                      content: 'Food costs, delivery operations, platform maintenance'
       responses:
         '201':
           description: BMC created successfully
@@ -260,6 +394,31 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BmcResponse'
+              example:
+                success: true
+                message: 'BMC created successfully'
+                data:
+                  id: '507f1f77bcf86cd799439011'
+                  authorId: 'user-123'
+                  isPublic: false
+                  items:
+                    - tag: 'CustomerSegments'
+                      content: 'Pekerja kantoran usia 25-35 tahun'
+                  createdAt: '2024-01-01T00:00:00.000Z'
+                  updatedAt: '2024-01-01T00:00:00.000Z'
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                message: 'Invalid BMC data provided'
+                details:
+                  - field: items.0.tag
+                    error: invalid_enum
+                    message: 'Invalid BMC tag value'
         '401':
           description: Unauthorized
           content:
@@ -276,10 +435,39 @@ paths:
   /api/bmc/public:
     get:
       tags:
+        - Public
         - BMC
       summary: Get all public BMC posts
-      description: Retrieve all BMC posts that are marked as public. No authentication required.
+      description: |
+        Retrieve all BMC posts that are marked as public.
+        No authentication required for this endpoint.
+        Results are paginated and ordered by creation date (newest first).
       operationId: getPublicBmcPosts
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          description: 'Maximum number of BMC posts to return (default: 20, max: 100)'
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          required: false
+          description: 'Number of BMC posts to skip for pagination (default: 0)'
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: search
+          in: query
+          required: false
+          description: Search term to filter BMC posts by content
+          schema:
+            type: string
+            example: 'delivery makanan'
       responses:
         '200':
           description: List of public BMC posts
@@ -287,6 +475,36 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BmcListResponse'
+              example:
+                success: true
+                count: 2
+                data:
+                  - id: '507f1f77bcf86cd799439011'
+                    authorId: 'user-123'
+                    isPublic: true
+                    items:
+                      - tag: 'CustomerSegments'
+                        content: 'Pekerja kantoran usia 25-35 tahun'
+                      - tag: 'ValuePropositions'
+                        content: 'Makanan sehat dengan pengiriman cepat'
+                    createdAt: '2024-01-01T00:00:00.000Z'
+                    updatedAt: '2024-01-01T00:00:00.000Z'
+                  - id: '507f1f77bcf86cd799439010'
+                    authorId: 'user-456'
+                    isPublic: true
+                    items:
+                      - tag: 'CustomerSegments'
+                        content: 'Mahasiswa dan pekerja kantoran'
+                      - tag: 'ValuePropositions'
+                        content: 'Platform belajar interaktif dengan AI tutor'
+                    createdAt: '2023-12-30T00:00:00.000Z'
+                    updatedAt: '2023-12-30T00:00:00.000Z'
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '500':
           description: Server error
           content:
@@ -299,10 +517,38 @@ paths:
       tags:
         - BMC
       summary: Get my BMC posts
-      description: Retrieve all BMC posts created by the authenticated user.
+      description: |
+        Retrieve all BMC posts created by the authenticated user.
+        Results are ordered by most recent activity (updatedAt descending).
+        Supports pagination for large result sets.
       operationId: getMyBmcPosts
       security:
         - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          description: 'Maximum number of BMC posts to return (default: 20, max: 100)'
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          required: false
+          description: 'Number of BMC posts to skip for pagination (default: 0)'
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: includePublic
+          in: query
+          required: false
+          description: 'Include public BMCs in the response (default: true)'
+          schema:
+            type: boolean
+            default: true
       responses:
         '200':
           description: List of user's BMC posts
@@ -328,7 +574,10 @@ paths:
       tags:
         - BMC
       summary: Get BMC by ID
-      description: Retrieve a specific BMC post by its ID.
+      description: |
+        Retrieve a specific BMC post by its ID.
+        Public BMCs can be accessed without authentication.
+        Private BMCs require authentication and ownership.
       operationId: getBmcById
       parameters:
         - name: id
@@ -337,7 +586,7 @@ paths:
           description: MongoDB ObjectId of the BMC post
           schema:
             type: string
-            format: objectid
+            pattern: '^[a-fA-F0-9]{24}$'
             example: '507f1f77bcf86cd799439011'
       responses:
         '200':
@@ -346,12 +595,37 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BmcResponse'
+              example:
+                success: true
+                data:
+                  id: '507f1f77bcf86cd799439011'
+                  authorId: 'user-123'
+                  isPublic: false
+                  items:
+                    - tag: 'CustomerSegments'
+                      content: 'Pekerja kantoran usia 25-35 tahun'
+                    - tag: 'ValuePropositions'
+                      content: 'Makanan sehat dengan pengiriman cepat'
+                  createdAt: '2024-01-01T00:00:00.000Z'
+                  updatedAt: '2024-01-01T00:00:00.000Z'
         '400':
           description: Invalid BMC ID format
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                message: 'Invalid BMC ID format'
+        '401':
+          description: Unauthorized - Private BMC requires authentication
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                message: 'Authentication required to access private BMC'
         '404':
           description: BMC not found
           content:
@@ -360,7 +634,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 success: false
-                message: 'BMC data not found.'
+                message: 'BMC data not found'
         '500':
           description: Server error
           content:
@@ -372,7 +646,9 @@ paths:
       tags:
         - BMC
       summary: Update BMC
-      description: Update an existing BMC post. Only the author can update their BMC.
+      description: |
+        Update an existing BMC post. Only the author can update their BMC.
+        All BMC items are replaced with the new items provided in the request.
       operationId: updateBmc
       security:
         - bearerAuth: []
@@ -383,7 +659,8 @@ paths:
           description: MongoDB ObjectId of the BMC post
           schema:
             type: string
-            format: objectid
+            pattern: '^[a-fA-F0-9]{24}$'
+            example: '507f1f77bcf86cd799439011'
       requestBody:
         required: true
         content:
@@ -395,9 +672,21 @@ paths:
                 - tag: 'CustomerSegments'
                   content: 'Mahasiswa dan pekerja kantoran'
                 - tag: 'ValuePropositions'
-                  content: 'Platform belajar interaktif dengan AI tutor'
+                  content: 'Platform belajar interaktif dengan AI tutor personal'
                 - tag: 'Channels'
-                  content: 'Mobile app dan website'
+                  content: 'Mobile app, website, dan social media'
+                - tag: 'CustomerRelationships'
+                  content: 'Personalized learning journey dengan progress tracking'
+                - tag: 'RevenueStreams'
+                  content: 'Subscription bulanan dan course one-time purchase'
+                - tag: 'KeyResources'
+                  content: 'AI engine, content library, dan platform infrastructure'
+                - tag: 'KeyActivities'
+                  content: 'Content creation, AI training, dan platform maintenance'
+                - tag: 'KeyPartnerships'
+                  content: 'Universities, content creators, dan certification bodies'
+                - tag: 'CostStructure'
+                  content: 'AI computing costs, content licensing, dan marketing'
       responses:
         '200':
           description: BMC updated successfully
@@ -411,21 +700,30 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                message: 'Invalid BMC update data'
         '401':
           description: Unauthorized
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-        '404':
-          description: BMC not found or unauthorized
+        '403':
+          description: Forbidden - Not the BMC owner
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 success: false
-                message: 'BMC not found or you do not have permission to update.'
+                message: 'BMC not found or you do not have permission to update'
+        '404':
+          description: BMC not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '500':
           description: Server error
           content:
@@ -437,7 +735,9 @@ paths:
       tags:
         - BMC
       summary: Delete BMC
-      description: Delete a BMC post. Only the author can delete their BMC.
+      description: |
+        Delete a BMC post permanently. Only the author can delete their BMC.
+        This operation cannot be undone.
       operationId: deleteBmc
       security:
         - bearerAuth: []
@@ -448,7 +748,8 @@ paths:
           description: MongoDB ObjectId of the BMC post
           schema:
             type: string
-            format: objectid
+            pattern: '^[a-fA-F0-9]{24}$'
+            example: '507f1f77bcf86cd799439011'
       responses:
         '200':
           description: BMC deleted successfully
@@ -458,13 +759,22 @@ paths:
                 $ref: '#/components/schemas/SuccessResponse'
               example:
                 success: true
-                message: 'BMC deleted successfully.'
+                message: 'BMC deleted successfully'
         '401':
           description: Unauthorized
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Not the BMC owner
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                message: 'You do not have permission to delete this BMC'
         '404':
           description: BMC not found or unauthorized
           content:
@@ -483,7 +793,9 @@ paths:
       tags:
         - BMC
       summary: Toggle BMC visibility
-      description: Toggle between public and private visibility for a BMC post.
+      description: |
+        Toggle between public and private visibility for a BMC post.
+        Only the author can change the visibility of their BMC.
       operationId: toggleBmcVisibility
       security:
         - bearerAuth: []
@@ -494,7 +806,8 @@ paths:
           description: MongoDB ObjectId of the BMC post
           schema:
             type: string
-            format: objectid
+            pattern: '^[a-fA-F0-9]{24}$'
+            example: '507f1f77bcf86cd799439011'
       responses:
         '200':
           description: Visibility toggled successfully
@@ -507,13 +820,22 @@ paths:
                     properties:
                       message:
                         type: string
-                        example: 'BMC is now public.'
+                        example: 'BMC is now public'
         '401':
           description: Unauthorized
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Not the BMC owner
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                message: 'You do not have permission to modify this BMC'
         '404':
           description: BMC not found or unauthorized
           content:
@@ -533,13 +855,15 @@ paths:
       tags:
         - Users
       summary: Greet authenticated user
-      description: Returns a greeting message for the authenticated user
+      description: |
+        Returns a greeting message for the authenticated user.
+        Useful for testing authentication and getting user information.
       operationId: greetUser
       security:
         - bearerAuth: []
       responses:
         '200':
-          description: Greeting message
+          description: Greeting message with user information
           content:
             application/json:
               schema:
@@ -551,14 +875,42 @@ paths:
                   message:
                     type: string
                     example: 'Hello, Vito Andareas Manik!'
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        example: 'user-123'
+                      name:
+                        type: string
+                        example: 'Vito Andareas Manik'
+                      email:
+                        type: string
+                        example: 'vito@example.com'
         '401':
           description: Unauthorized
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Better Auth session token.
+        Include in Authorization header as: Bearer <token>
+      x-better-auth: true
+
   schemas:
     # ==================== AI CHAT SCHEMAS ====================
     StreamChatRequest:
@@ -570,66 +922,99 @@ components:
           type: string
           minLength: 1
           maxLength: 10000
-          description: User message to send to the AI
+          description: User message to send to the AI assistant
           example: 'Saya ingin membuat bisnis delivery makanan sehat'
         chatId:
           type: string
-          format: objectid
-          description: Optional chat session ID to continue existing conversation
+          pattern: '^[a-fA-F0-9]{24}$'
+          description: |
+            Optional chat session ID to continue existing conversation.
+            When not provided, a new chat session is created.
           example: '507f1f77bcf86cd799439011'
 
     StreamChatResponse:
       type: object
-      description: Server-Sent Event data chunk
+      description: Server-Sent Event data chunk for streaming responses
+      required:
+        - chunk
+        - chatId
+        - isNewChat
       properties:
         chunk:
           type: string
           description: Text chunk from AI response
+          example: 'Menarik! Mari kita mulai dengan menganalisis'
         chatId:
           type: string
-          format: objectid
           description: ID of the chat session
+          example: '507f1f77bcf86cd799439011'
         isNewChat:
           type: boolean
           description: Whether this is a newly created chat session
+          example: true
 
     Chat:
       type: object
+      description: Chat session metadata
+      required:
+        - id
+        - title
+        - createdAt
+        - updatedAt
       properties:
         id:
           type: string
-          format: objectid
           description: Unique chat session ID
+          example: '507f1f77bcf86cd799439011'
         title:
           type: string
-          description: Chat title (usually first message truncated)
+          description: Chat title (usually truncated first message)
           example: 'Saya ingin membuat bisnis delivery...'
         createdAt:
           type: string
           format: date-time
+          description: Chat creation timestamp
+          example: '2024-01-01T00:00:00.000Z'
         updatedAt:
           type: string
           format: date-time
+          description: Last activity timestamp
+          example: '2024-01-01T00:00:00.000Z'
 
     Message:
       type: object
+      description: Chat message
+      required:
+        - id
+        - role
+        - content
+        - createdAt
       properties:
         id:
           type: string
-          format: objectid
+          description: Unique message ID
+          example: '507f1f77bcf86cd799439012'
         role:
           type: string
           enum: [user, assistant]
           description: Message sender role
+          example: 'user'
         content:
           type: string
           description: Message content
+          example: 'Saya ingin membuat bisnis delivery makanan sehat'
         createdAt:
           type: string
           format: date-time
+          description: Message creation timestamp
+          example: '2024-01-01T00:00:00.000Z'
 
     ChatsResponse:
       type: object
+      description: Response containing list of chat sessions
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
@@ -641,6 +1026,10 @@ components:
 
     MessagesResponse:
       type: object
+      description: Response containing list of chat messages
+      required:
+        - success
+        - data
       properties:
         success:
           type: boolean
@@ -664,19 +1053,20 @@ components:
         - KeyPartnerships
         - CostStructure
       description: |
-        Business Model Canvas block types:
-        - **CustomerSegments**: Target customer groups
-        - **ValuePropositions**: Value offered to customers
-        - **Channels**: Distribution and communication channels
-        - **CustomerRelationships**: Customer engagement strategies
-        - **RevenueStreams**: Revenue sources
-        - **KeyResources**: Critical assets required
-        - **KeyActivities**: Key operations and activities
-        - **KeyPartnerships**: Strategic partners
-        - **CostStructure**: Cost breakdown
+        Business Model Canvas building blocks:
+        - **CustomerSegments**: Target customer groups and market segments
+        - **ValuePropositions**: Value offered to customers and problem solved
+        - **Channels**: Distribution and communication channels to reach customers
+        - **CustomerRelationships**: Customer engagement and relationship strategies
+        - **RevenueStreams**: Revenue sources and pricing models
+        - **KeyResources**: Critical assets required for the business
+        - **KeyActivities**: Key operations and activities to deliver value
+        - **KeyPartnerships**: Strategic partners and supplier relationships
+        - **CostStructure**: Cost breakdown and financial structure
 
     BmcItem:
       type: object
+      description: Single Business Model Canvas building block item
       required:
         - tag
         - content
@@ -686,66 +1076,93 @@ components:
         content:
           type: string
           minLength: 1
+          maxLength: 5000
           description: Content for the BMC block
-          example: 'Pekerja kantoran usia 25-35 tahun di Jakarta'
+          example: 'Pekerja kantoran usia 25-35 tahun di Jakarta yang peduli kesehatan'
 
     Coordinate:
       type: object
+      description: Geographic coordinates for BMC location (optional)
       properties:
         lat:
           type: number
           format: double
-          description: Latitude
+          description: Latitude coordinate
           example: -6.2088
+          minimum: -90
+          maximum: 90
         long:
           type: number
           format: double
-          description: Longitude
+          description: Longitude coordinate
           example: 106.8456
+          minimum: -180
+          maximum: 180
 
     BmcPost:
       type: object
+      description: Complete Business Model Canvas post
+      required:
+        - id
+        - authorId
+        - isPublic
+        - items
+        - createdAt
+        - updatedAt
       properties:
         id:
           type: string
-          format: objectid
           description: Unique BMC post ID
+          example: '507f1f77bcf86cd799439011'
         authorId:
           type: string
           description: User ID of the author
+          example: 'user-123'
         isPublic:
           type: boolean
           description: Whether the BMC is publicly visible
           default: false
+          example: false
         coordinates:
           $ref: '#/components/schemas/Coordinate'
         items:
           type: array
           items:
             $ref: '#/components/schemas/BmcItem'
-          description: Array of BMC block items
+          description: Array of BMC building block items
+          minItems: 0
+          maxItems: 9
         createdAt:
           type: string
           format: date-time
+          description: Creation timestamp
+          example: '2024-01-01T00:00:00.000Z'
         updatedAt:
           type: string
           format: date-time
+          description: Last update timestamp
+          example: '2024-01-01T00:00:00.000Z'
 
     CreateBmcRequest:
       type: object
+      description: Request body for creating a new BMC
       properties:
         isPublic:
           type: boolean
           default: false
-          description: Whether the BMC should be public
+          description: Whether the BMC should be publicly visible
+          example: false
         items:
           type: array
           items:
             $ref: '#/components/schemas/BmcItem'
           description: Initial BMC items (optional)
+          minItems: 0
+          maxItems: 9
 
     UpdateBmcRequest:
       type: object
+      description: Request body for updating an existing BMC
       required:
         - items
       properties:
@@ -753,23 +1170,32 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/BmcItem'
-          minItems: 1
-          description: Updated BMC items
+          minItems: 0
+          maxItems: 9
+          description: Updated BMC items (replaces all existing items)
 
     BmcResponse:
       type: object
+      description: Standard response for BMC operations
+      required:
+        - success
       properties:
         success:
           type: boolean
           example: true
         message:
           type: string
-          example: 'BMC created successfully.'
+          example: 'BMC created successfully'
         data:
           $ref: '#/components/schemas/BmcPost'
 
     BmcListResponse:
       type: object
+      description: Response containing list of BMC posts
+      required:
+        - success
+        - count
+        - data
       properties:
         success:
           type: boolean
@@ -777,6 +1203,7 @@ components:
         count:
           type: integer
           description: Number of BMC posts returned
+          example: 2
         data:
           type: array
           items:
@@ -785,15 +1212,23 @@ components:
     # ==================== COMMON SCHEMAS ====================
     SuccessResponse:
       type: object
+      description: Standard success response
+      required:
+        - success
       properties:
         success:
           type: boolean
           example: true
         message:
           type: string
+          example: 'Operation completed successfully'
 
     ErrorResponse:
       type: object
+      description: Standard error response
+      required:
+        - success
+        - message
       properties:
         success:
           type: boolean
@@ -801,15 +1236,168 @@ components:
         message:
           type: string
           description: Error message
+          example: 'An error occurred while processing your request'
         details:
           type: array
           items:
             type: object
-          description: Validation error details (optional)
+            properties:
+              field:
+                type: string
+                description: Field that caused the error
+                example: 'message'
+              error:
+                type: string
+                description: Type of error
+                example: 'required'
+              message:
+                type: string
+                description: Detailed error message
+                example: 'Message is required'
 
-  securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-      description: Better Auth session token
+    # ==================== PAGINATION SCHEMAS ====================
+    PaginationParams:
+      type: object
+      description: Common pagination parameters
+      properties:
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+          description: Maximum number of items to return
+        offset:
+          type: integer
+          minimum: 0
+          default: 0
+          description: Number of items to skip for pagination
+
+    PaginatedResponse:
+      type: object
+      description: Common pagination response metadata
+      properties:
+        limit:
+          type: integer
+          description: Number of items returned in this response
+        offset:
+          type: integer
+          description: Number of items skipped
+        total:
+          type: integer
+          description: Total number of items available
+        hasMore:
+          type: boolean
+          description: Whether there are more items available
+
+  responses:
+    UnauthorizedError:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            message: 'Authentication required'
+
+    NotFoundError:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            message: 'Resource not found'
+
+    ValidationError:
+      description: Invalid input data
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            message: 'Validation failed'
+            details:
+              - field: 'email'
+                error: 'format'
+                message: 'Invalid email format'
+
+  parameters:
+    ChatIdParam:
+      name: chatId
+      in: path
+      required: true
+      description: MongoDB ObjectId of the chat session
+      schema:
+        type: string
+        pattern: '^[a-fA-F0-9]{24}$'
+        example: '507f1f77bcf86cd799439011'
+
+    BmcIdParam:
+      name: id
+      in: path
+      required: true
+      description: MongoDB ObjectId of the BMC post
+      schema:
+        type: string
+        pattern: '^[a-fA-F0-9]{24}$'
+        example: '507f1f77bcf86cd799439011'
+
+  examples:
+    StreamChatNew:
+      summary: Start new chat
+      value:
+        message: 'Saya ingin membuat bisnis delivery makanan sehat'
+
+    StreamChatContinue:
+      summary: Continue existing chat
+      value:
+        message: 'Target pasar saya adalah pekerja kantoran usia 25-35 tahun'
+        chatId: '507f1f77bcf86cd799439011'
+
+    BmcComplete:
+      summary: Complete Business Model Canvas
+      value:
+        isPublic: false
+        items:
+          - tag: 'CustomerSegments'
+            content: 'Pekerja kantoran usia 25-35 tahun di Jakarta'
+          - tag: 'ValuePropositions'
+            content: 'Makanan sehat berlangganan dengan pengiriman tepat waktu'
+          - tag: 'Channels'
+            content: 'Mobile app, website, dan partnership dengan GoFood'
+          - tag: 'CustomerRelationships'
+            content: 'Subscription model dengan customer support 24/7'
+          - tag: 'RevenueStreams'
+            content: 'Subscription bulanan, delivery fee, dan corporate partnership'
+          - tag: 'KeyResources'
+            content: 'Koki profesional, delivery fleet, dan teknologi platform'
+          - tag: 'KeyActivities'
+            content: 'Food preparation, quality control, dan delivery operations'
+          - tag: 'KeyPartnerships'
+            content: 'Local farms, delivery platforms, dan fitness centers'
+          - tag: 'CostStructure'
+            content: 'Food costs (40%), delivery operations (30%), platform maintenance (20%), marketing (10%)'
+
+security:
+  - bearerAuth: []
+
+x-tagGroups:
+  - name: Core Features
+    tags:
+      - AI Chat
+      - BMC
+  - name: User Management
+    tags:
+      - Users
+  - name: Public Access
+    tags:
+      - Public
+
+x-logo:
+  url: 'https://kivo.com/logo.png'
+  altText: 'Kivo API'
+
+x-better-auth: true
