@@ -19,17 +19,17 @@ export const TEST_USERS = {
   },
 };
 
-// Valid BMC tags
+// Valid BMC tags (snake_case to match model enum)
 export const BMC_TAGS = [
-  'CustomerSegments',
-  'ValuePropositions',
-  'Channels',
-  'CustomerRelationships',
-  'RevenueStreams',
-  'KeyResources',
-  'KeyActivities',
-  'KeyPartnerships',
-  'CostStructure',
+  'customer_segments',
+  'value_propositions',
+  'channels',
+  'customer_relationships',
+  'revenue_streams',
+  'key_resources',
+  'key_activities',
+  'key_partnerships',
+  'cost_structure',
 ];
 
 // Mock Express request
@@ -76,17 +76,17 @@ export function createMockRes() {
   return res;
 }
 
-// Sample BMC items for testing
+// Sample BMC items for testing (snake_case tags to match model enum)
 export const SAMPLE_BMC_ITEMS = [
-  { tag: 'CustomerSegments', content: 'Young professionals aged 25-35 in urban areas' },
-  { tag: 'ValuePropositions', content: 'Fast, affordable, and eco-friendly delivery service' },
-  { tag: 'Channels', content: 'Mobile app, website, and social media' },
-  { tag: 'CustomerRelationships', content: 'Self-service with 24/7 customer support' },
-  { tag: 'RevenueStreams', content: 'Delivery fees, subscription plans, partnerships' },
-  { tag: 'KeyResources', content: 'Fleet of electric vehicles, mobile app, logistics network' },
-  { tag: 'KeyActivities', content: 'Delivery operations, app development, marketing' },
-  { tag: 'KeyPartnerships', content: 'Local restaurants, e-commerce platforms, vehicle suppliers' },
-  { tag: 'CostStructure', content: 'Vehicle maintenance, salaries, app development, marketing' },
+  { tag: 'customer_segments', content: 'Young professionals aged 25-35 in urban areas' },
+  { tag: 'value_propositions', content: 'Fast, affordable, and eco-friendly delivery service' },
+  { tag: 'channels', content: 'Mobile app, website, and social media' },
+  { tag: 'customer_relationships', content: 'Self-service with 24/7 customer support' },
+  { tag: 'revenue_streams', content: 'Delivery fees, subscription plans, partnerships' },
+  { tag: 'key_resources', content: 'Fleet of electric vehicles, mobile app, logistics network' },
+  { tag: 'key_activities', content: 'Delivery operations, app development, marketing' },
+  { tag: 'key_partnerships', content: 'Local restaurants, e-commerce platforms, vehicle suppliers' },
+  { tag: 'cost_structure', content: 'Vehicle maintenance, salaries, app development, marketing' },
 ];
 
 // Sample chat messages for testing

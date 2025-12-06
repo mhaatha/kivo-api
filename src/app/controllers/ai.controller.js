@@ -9,24 +9,8 @@ import {
   getUserCoordinates,
   performWebSearch,
 } from '../services/ai.service.js';
-import { createOpenRouter } from '@openrouter/ai-sdk-provider';
-
-// Setup Kolosal provider (OpenAI-compatible)
-// const kolosal = createOpenAI({
-//   apiKey: process.env.KOLOSAL_API_KEY,
-//   baseURL: "https://api.kolosal.ai/v1",
-//   headers: {
-//   'Authorization': 'Bearer ' + process.env.KOLOSAL_API_KEY,
-//   }
-// });
-
-const openrouter = createOpenRouter({
-  apiKey: process.env.OPENROUTER_API_KEY,
-});
-
-// const modelName = process.env.KOLOSAL_MODEL_NAME || 'Kimi K2';
-
-const modelName = "moonshotai/kimi-k2-0905"
+import { getAIModel, aiConfig } from '../config/ai.config.js';
+import {withSupermemory} from "@supermemory/tools/ai-sdk"
 
 /**
  * Check if string is valid UUID v4
@@ -221,12 +205,12 @@ export async function streamChat(req, res) {
     let toolCallsExecuted = [];
 
     const result = streamText({
-      model: openrouter(modelName),
+      model: withSupermemory(getAIModel(), userId, {apiKey: process.env.SUPERMEMORY_API_KEY}),
       system: systemPrompt,
       messages: convertToModelMessages(messages),
       tools,
-      maxSteps: 10, // Allow more steps for complex tool chains
-      toolChoice: 'auto', // Explicitly set tool choice
+      maxSteps: aiConfig.maxSteps,
+      toolChoice: aiConfig.toolChoice,
       onStepFinish: async ({ stepType, text, toolCalls, toolResults }) => {
         // Track tool executions for DB persistence
         if (stepType === 'tool-result' && toolResults) {

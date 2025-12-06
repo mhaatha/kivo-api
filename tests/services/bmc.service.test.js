@@ -78,16 +78,17 @@ describe('BMC Service', () => {
     });
 
     it('should validate BMC tags are from allowed list', () => {
+      // Tags should be snake_case to match model enum
       const allowedTags = [
-        'CustomerSegments',
-        'ValuePropositions',
-        'Channels',
-        'CustomerRelationships',
-        'RevenueStreams',
-        'KeyResources',
-        'KeyActivities',
-        'KeyPartnerships',
-        'CostStructure',
+        'customer_segments',
+        'value_propositions',
+        'channels',
+        'customer_relationships',
+        'revenue_streams',
+        'key_resources',
+        'key_activities',
+        'key_partnerships',
+        'cost_structure',
       ];
       
       SAMPLE_BMC_ITEMS.forEach(item => {

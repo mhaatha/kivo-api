@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { TEST_USERS, SAMPLE_BMC_ITEMS } from '../setup.js';
 
+// Mock Clerk's getAuth
+vi.mock('@clerk/express', () => ({
+  getAuth: vi.fn((req) => ({ userId: req.user?.id })),
+}));
+
 // Mock the services and validations
 vi.mock('../../src/app/services/bmc.service.js', () => ({
   getPublicBmcPosts: vi.fn(),
