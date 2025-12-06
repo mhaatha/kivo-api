@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { generateObject } from 'ai';
 import { BmcPost } from '../../models/bmc.model.js';
 import { getAIModel } from '../../config/ai.config.js';
+import * as chatService from '../../services/chat.service.js';
 
 // Valid BMC tags
 const BMC_TAGS = [
@@ -147,9 +148,13 @@ JANGAN panggil dengan businessContext kosong!`,
             };
           }
 
+          // Get location from chat
+          const location = await chatService.getLatestLocationFromChat(chatId);
+          console.log(`[BMC] 📍 Location from chat:`, location);
+
           // Save to database
           const newBmc = new BmcPost({
-            coordinat: { lat: 0, long: 0 },
+            location: location || null,
             authorId: userId,
             chatId,
             isPublic: false,
@@ -247,6 +252,47 @@ The updateContext should describe what changes or additions to make.`,
         const { createSearchTools } = await import('./search.tools.js');
         const searchTools = createSearchTools();
         return searchTools.performWebSearch.execute({ query });
+      },
+    },
+
+    getCoordinate: {
+      description: `Mendapatkan koordinat lokasi user dari chat session.
+Gunakan tool ini untuk mengetahui lokasi geografis user saat ini.
+Berguna untuk analisis pasar lokal, rekomendasi bisnis berbasis lokasi, atau konteks geografis.`,
+      parameters: z.object({}),
+      execute: async () => {
+        console.log(`[BMC] 📍 Getting coordinate for chat: ${chatId}`);
+
+        try {
+          const location = await chatService.getLatestLocationFromChat(chatId);
+
+          if (!location) {
+            return {
+              status: 'not_found',
+              message: 'Lokasi user tidak tersedia dalam chat ini.',
+              location: null,
+            };
+          }
+
+          console.log(`[BMC] 📍 Found location:`, location);
+
+          return {
+            status: 'success',
+            location: {
+              latitude: location.latitude,
+              longitude: location.longitude,
+              accuracy: location.accuracy,
+            },
+            message: 'Lokasi user berhasil ditemukan.',
+          };
+        } catch (error) {
+          console.error(`[BMC] ❌ Error getting coordinate:`, error.message);
+          return {
+            status: 'failed',
+            message: `Gagal mendapatkan lokasi: ${error.message}`,
+            location: null,
+          };
+        }
       },
     },
   };

@@ -3,6 +3,7 @@ import { requireAuth } from '@clerk/express';
 import {
   getPublicBmcPosts,
   getBmcById,
+  getBmcByChatId,
   getMyBmcPosts,
   createBmc,
   updateBmc,
@@ -17,6 +18,9 @@ router.get('/public', getPublicBmcPosts);
 
 // GET /api/bmc/my - Get all BMCs for current user
 router.get('/my', requireAuth(), getMyBmcPosts);
+
+// GET /api/bmc/chat/:chatId - Get BMC by chat ID
+router.get('/chat/:chatId', getBmcByChatId);
 
 // GET /api/bmc/:id - Get BMC by ID
 router.get('/:id', getBmcById);

@@ -75,3 +75,10 @@ export async function getLatestBmcForUser(authorId) {
 export function userOwnsBmc(bmc, userId) {
   return bmc && bmc.authorId === userId;
 }
+
+/**
+ * Get BMC by chat ID
+ */
+export async function getBmcByChatId(chatId) {
+  return BmcPost.findOne({ chatId });
+}

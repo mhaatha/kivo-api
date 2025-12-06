@@ -54,13 +54,29 @@ export async function deleteChat(chatId, userId) {
 /**
  * Create a message
  */
-export async function createMessage(chatId, role, content, toolCalls = null, toolCallId = null) {
+export async function createMessage(chatId, role, content, toolCalls = null, toolCallId = null, location = null) {
   const messageData = { chatId, role, content };
   if (toolCalls) messageData.tool_calls = toolCalls;
   if (toolCallId) messageData.tool_call_id = toolCallId;
+  if (location) messageData.location = location;
   
   const message = new Message(messageData);
   return message.save();
+}
+
+/**
+ * Get latest location from chat messages
+ */
+export async function getLatestLocationFromChat(chatId) {
+  const message = await Message.findOne({
+    chatId,
+    location: { $ne: null },
+  })
+    .sort({ createdAt: -1 })
+    .select('location')
+    .lean();
+
+  return message?.location || null;
 }
 
 /**
