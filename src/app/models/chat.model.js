@@ -1,8 +1,12 @@
 import mongoose from 'mongoose';
 
-// Chat Session Schema
+// Chat Session Schema - menggunakan UUID dari frontend sebagai _id
 const chatSchema = new mongoose.Schema(
   {
+    _id: {
+      type: String, // UUID dari frontend
+      required: true,
+    },
     userId: {
       type: String,
       required: true,
@@ -15,19 +19,19 @@ const chatSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+    _id: false, // Disable auto ObjectId generation
   },
 );
 
-// Virtual for id
+// Virtual for id (return _id as-is since it's already a string UUID)
 chatSchema.virtual('id').get(function () {
-  return this._id.toString();
+  return this._id;
 });
 
 chatSchema.set('toJSON', {
   virtuals: true,
   transform: (doc, ret) => {
     ret.id = ret._id;
-    delete ret._id;
     delete ret.__v;
     return ret;
   },
@@ -37,7 +41,7 @@ chatSchema.set('toJSON', {
 const messageSchema = new mongoose.Schema(
   {
     chatId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: String, // Reference to Chat UUID
       ref: 'Chat',
       required: true,
       index: true,

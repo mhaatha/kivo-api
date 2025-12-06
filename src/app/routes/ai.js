@@ -9,10 +9,10 @@ import {
 
 const router = Router();
 
-// POST /api/chat - Stream chat with AI
-router.post('/', requireAuth(), streamChat);
+// POST /api/chat/:chatId - Stream chat with AI (chatId is UUID from frontend)
+router.post('/:chatId', requireAuth(), streamChat);
 
-// GET /api/chats - Get all chats for user
+// GET /api/chat - Get all chats for user
 router.get('/', requireAuth(), getChats);
 
 // GET /api/chat/:chatId/messages - Get messages for a chat

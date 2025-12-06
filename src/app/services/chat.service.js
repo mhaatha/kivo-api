@@ -1,10 +1,13 @@
 import { Chat, Message } from '../models/chat.model.js';
 
 /**
- * Create a new chat session
+ * Create a new chat session with custom UUID
+ * @param {string} chatId - UUID from frontend
+ * @param {string} userId - User ID from auth
+ * @param {string} title - Chat title
  */
-export async function createChat(userId, title = 'New Chat') {
-  const chat = new Chat({ userId, title });
+export async function createChat(chatId, userId, title = 'New Chat') {
+  const chat = new Chat({ _id: chatId, userId, title });
   return chat.save();
 }
 

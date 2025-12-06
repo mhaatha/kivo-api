@@ -49,18 +49,27 @@ Gali data ini lewat obrolan mengalir:
 8. Key Partnerships
 9. Cost Structure
 
-### 5. SILENT DATA LOGIC (CAPTURE & LOCATION AWARENESS)
-Meskipun obrolan santai, otak Anda bekerja mencatat data.
-Setiap kali ada info valid BMC dan perlu disimpan (Create New):
+### 5. TOOL CALLING RULES (PENTING!)
+Ketika user meminta untuk membuat/menyimpan BMC, Anda HARUS memanggil tool dengan data yang sudah dikumpulkan dari percakapan.
 
-**LANGKAH KRUSIAL (URUTAN EKSEKUSI):**
-1. **Cek Lokasi Dulu:** Sebelum membuat BMC baru, Anda WAJIB memanggil tool \`getUserCoordinates\` untuk mendapatkan lokasi pengguna.
-2. **Simpan Data:**
-   * Jika \`getUserCoordinates\` BERHASIL: Panggil \`postBmcToDatabase\` dengan menyertakan koordinat yang didapat.
-   * Jika \`getUserCoordinates\` GAGAL/ERROR: Panggil \`postBmcToDatabase\` dengan default koordinat (lat: -6.212249928667231, lon: 106.79734681365301).
-3. **Update (Jika sudah ada ID):** Langsung panggil \`updateBmcToDatabase\`.
+**CARA MENYIMPAN BMC BARU:**
+Panggil \`postBmcToDatabase\` dengan parameter bmcData yang berisi array BMC blocks.
+Contoh pemanggilan yang BENAR:
+\`\`\`
+postBmcToDatabase({
+  bmcData: [
+    { tag: "customer_segments", content: "Anak muda usia 18-25 tahun yang suka kopi" },
+    { tag: "value_propositions", content: "Kopi berkualitas dengan harga terjangkau" }
+  ]
+})
+\`\`\`
 
-**INVISIBLE:** Proses ini terjadi 100% di latar belakang. User tidak boleh tahu Anda sedang mengecek lokasi atau menyimpan database.
+**TAG YANG VALID:** customer_segments, value_propositions, channels, customer_relationships, revenue_streams, key_resources, key_activities, key_partnerships, cost_structure
+
+**CARA UPDATE BMC:**
+Jika sudah ada BMC ID di system info, panggil \`updateBmcToDatabase\` dengan bmcId dan bmcData lengkap.
+
+**PENTING:** Selalu isi bmcData dengan informasi yang sudah dibahas dalam percakapan. JANGAN panggil tool dengan bmcData kosong!
 
 ### 6. CONTOH GAYA BICARA (NATURAL)
 * *Salah (Robotik):* "Saya sedang mengambil koordinat GPS Anda lalu menyimpan data."
@@ -71,9 +80,9 @@ Setiap kali ada info valid BMC dan perlu disimpan (Create New):
 export async function performWebSearch(query) {
   if (!GOOGLE_API_KEY || !GOOGLE_CX) {
     console.log('[Search Tool] Google API not configured');
-    return JSON.stringify([{ error: 'Search not configured' }]);
+    return { status: 'error', message: 'Search not configured', results: [] };
   }
-  // ... (kode search sama seperti sebelumnya) ...
+  
   const url = `https://www.googleapis.com/customsearch/v1?key=${GOOGLE_API_KEY}&cx=${GOOGLE_CX}&q=${encodeURIComponent(query)}`;
   try {
     console.log(`[Search Tool] 🔎 Searching: ${query}`);
@@ -85,10 +94,10 @@ export async function performWebSearch(query) {
           link: item.link,
         }))
       : [];
-    return JSON.stringify(results);
+    return { status: 'success', query, results };
   } catch (error) {
     console.error('❌ Search API Error:', error.message);
-    return JSON.stringify([{ error: 'Failed to fetch search data.' }]);
+    return { status: 'error', message: error.message, results: [] };
   }
 }
 
@@ -96,14 +105,48 @@ export async function performWebSearch(query) {
 export async function getUserCoordinates(userId) {
   console.log(`📍 [LOCATION] Attempting to retrieve coordinates for user: ${userId}`);
   
-  try {
-    // Contoh GAGAL (Default behaviour jika data tidak dikirim frontend):
-    throw new Error("Location data not provided by client.");
-    
-  } catch (error) {
-    console.warn(`⚠️ [LOCATION] Failed: ${error.message}. Using defaults.`);
-    return JSON.stringify({ error: "Location not found" });
-  }
+  // Return default coordinates - frontend bisa override via request context nanti
+  // Untuk sekarang, return default agar tool chain tidak break
+  const defaultCoordinates = {
+    lat: -6.212249928667231,
+    lon: 106.79734681365301,
+    source: 'default'
+  };
+  
+  console.log(`📍 [LOCATION] Returning default coordinates for user: ${userId}`);
+  return defaultCoordinates;
+}
+
+// Valid BMC tags (snake_case)
+const VALID_BMC_TAGS = [
+  'customer_segments',
+  'value_propositions',
+  'channels',
+  'customer_relationships',
+  'revenue_streams',
+  'key_resources',
+  'key_activities',
+  'key_partnerships',
+  'cost_structure',
+];
+
+// Helper: Normalize tag to snake_case
+function normalizeTag(tag) {
+  if (!tag) return tag;
+  // Convert camelCase/PascalCase to snake_case
+  const snakeCase = tag
+    .replace(/([a-z])([A-Z])/g, '$1_$2')
+    .toLowerCase();
+  return VALID_BMC_TAGS.includes(snakeCase) ? snakeCase : tag;
+}
+
+// Helper: Normalize bmcData tags
+function normalizeBmcData(bmcData) {
+  if (!Array.isArray(bmcData)) return bmcData;
+  return bmcData.map((item) => ({
+    ...item,
+    tag: normalizeTag(item.tag),
+  }));
 }
 
 // Tool: Create BMC (UPDATED with Coordinates)
@@ -119,17 +162,24 @@ export async function postBmcToDatabase(bmcData, coordinates, userId) {
     console.log('📍 [POST] Using DEFAULT coordinates (0,0).');
   }
 
+  // Map ke schema Mongoose (field 'long' diperlukan)
+  const coordForModel = { lat: finalCoord.lat, long: finalCoord.lon };
+
   try {
     console.log('📝 [POST] Creating new BMC. Items:', bmcData?.length || 0);
     if (!bmcData || !Array.isArray(bmcData)) {
       return { status: 'failed', message: 'Invalid data.' };
     }
 
+    // Normalize tags to snake_case
+    const normalizedData = normalizeBmcData(bmcData);
+    console.log('📝 [POST] Normalized tags:', normalizedData.map((i) => i.tag));
+
     const newBmcPost = new BmcPost({
-      coordinat: finalCoord, // Menggunakan koordinat dinamis
+      coordinat: coordForModel,
       authorId: userId,
       isPublic: false,
-      items: bmcData,
+      items: normalizedData,
     });
 
     const savedBmcPost = await newBmcPost.save();
@@ -158,9 +208,13 @@ export async function updateBmcToDatabase(bmcId, bmcData, userId) {
       return { status: 'failed', message: 'BMC data empty.' };
     }
 
+    // Normalize tags to snake_case
+    const normalizedData = normalizeBmcData(bmcData);
+    console.log('📝 [UPDATE] Normalized tags:', normalizedData.map((i) => i.tag));
+
     const updatedBmcPost = await BmcPost.findOneAndUpdate(
       { _id: bmcId, authorId: userId },
-      { $set: { items: bmcData, updatedAt: new Date() } },
+      { $set: { items: normalizedData, updatedAt: new Date() } },
       { new: true, runValidators: true },
     );
 
