@@ -87,6 +87,9 @@ describeIfMongo('Integration Tests', () => {
     let Chat, Message;
     let testChatId;
 
+    // Helper to generate UUID-like string for chat _id
+    const generateChatId = () => `test-chat-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+
     beforeAll(async () => {
       const chatModule = await import('../../src/app/models/chat.model.js');
       Chat = chatModule.Chat;
@@ -103,21 +106,25 @@ describeIfMongo('Integration Tests', () => {
     });
 
     it('should create a new chat for user', async () => {
+      const chatId = generateChatId();
       const chat = new Chat({
+        _id: chatId,
         userId: TEST_USERS.user1.id,
         title: 'Test Chat Session',
       });
       const savedChat = await chat.save();
       testChatId = savedChat._id;
 
-      expect(savedChat._id).toBeDefined();
+      expect(savedChat._id).toBe(chatId);
       expect(savedChat.userId).toBe(TEST_USERS.user1.id);
       expect(savedChat.title).toBe('Test Chat Session');
     });
 
     it('should create messages in chat', async () => {
       // Create chat
+      const chatId = generateChatId();
       const chat = new Chat({
+        _id: chatId,
         userId: TEST_USERS.user1.id,
         title: 'Chat with messages',
       });
@@ -148,7 +155,9 @@ describeIfMongo('Integration Tests', () => {
 
     it('should query chats by userId', async () => {
       // Create chat
+      const chatId = generateChatId();
       const chat = new Chat({
+        _id: chatId,
         userId: TEST_USERS.user1.id,
         title: 'User specific chat',
       });
@@ -212,7 +221,7 @@ describeIfMongo('Integration Tests', () => {
       // Create
       const bmc = new BmcPost({
         authorId: TEST_USERS.user1.id,
-        items: [{ tag: 'CustomerSegments', content: 'Initial segment' }],
+        items: [{ tag: 'customer_segments', content: 'Initial segment' }],
       });
       const savedBmc = await bmc.save();
       testBmcId = savedBmc._id;
@@ -223,8 +232,8 @@ describeIfMongo('Integration Tests', () => {
         { 
           $set: { 
             items: [
-              { tag: 'CustomerSegments', content: 'Updated segment' },
-              { tag: 'ValuePropositions', content: 'New value prop' },
+              { tag: 'customer_segments', content: 'Updated segment' },
+              { tag: 'value_propositions', content: 'New value prop' },
             ],
           },
         },
@@ -240,7 +249,7 @@ describeIfMongo('Integration Tests', () => {
       const bmc = new BmcPost({
         authorId: TEST_USERS.user1.id,
         isPublic: true,
-        items: [{ tag: 'CustomerSegments', content: 'Public BMC' }],
+        items: [{ tag: 'customer_segments', content: 'Public BMC' }],
       });
       const savedBmc = await bmc.save();
       testBmcId = savedBmc._id;
@@ -254,7 +263,7 @@ describeIfMongo('Integration Tests', () => {
       // Create
       const bmc = new BmcPost({
         authorId: TEST_USERS.user2.id,
-        items: [{ tag: 'CustomerSegments', content: 'User2 BMC' }],
+        items: [{ tag: 'customer_segments', content: 'User2 BMC' }],
       });
       const savedBmc = await bmc.save();
       testBmcId = savedBmc._id;
@@ -274,20 +283,25 @@ describeIfMongo('Integration Tests', () => {
       expect(KOLOSAL_API_KEY.length).toBeGreaterThan(0);
     });
 
-    it('should load AI service module', async () => {
-      const aiService = await import('../../src/app/services/ai.service.js');
+    it('should load AI modules', async () => {
+      // After refactor, prompts are in separate module
+      const { BMC_SYSTEM_PROMPT } = await import('../../src/app/ai/prompts/bmc.prompts.js');
+      const { getTools } = await import('../../src/app/ai/tools/index.js');
+      const { createAIProvider } = await import('../../src/app/config/ai.config.js');
       
-      expect(aiService.BMC_SYSTEM_PROMPT).toBeDefined();
-      expect(aiService.AVAILABLE_TOOLS).toBeDefined();
-      expect(aiService.openaiClient).toBeDefined();
+      expect(BMC_SYSTEM_PROMPT).toBeDefined();
+      expect(getTools).toBeDefined();
+      expect(createAIProvider).toBeDefined();
     });
 
-    it('should have 3 available tools', async () => {
-      const { AVAILABLE_TOOLS } = await import('../../src/app/services/ai.service.js');
+    it('should have 4 available tools', async () => {
+      const { getTools } = await import('../../src/app/ai/tools/index.js');
       
-      expect(AVAILABLE_TOOLS).toHaveLength(3);
+      const tools = getTools('test-user-id');
+      expect(Object.keys(tools)).toHaveLength(4);
       
-      const toolNames = AVAILABLE_TOOLS.map(t => t.function.name);
+      const toolNames = Object.keys(tools);
+      expect(toolNames).toContain('getUserCoordinates');
       expect(toolNames).toContain('postBmcToDatabase');
       expect(toolNames).toContain('updateBmcToDatabase');
       expect(toolNames).toContain('performWebSearch');
