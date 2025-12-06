@@ -1,34 +1,77 @@
-import app from '../app/index.js';
-import usersRouter from '../app/routes/users.js';
+// Sederetkan semua endpoint yang tersedia berdasarkan konfigurasi server.js
+// dan spesifikasi OpenAPI yang sebenarnya
 
-// --- 1. Load Router dan Pasang ke Objek 'app' ---
-// Memuat dan memasang router diperlukan agar objek usersRouter terinisialisasi
-// dan stack-nya siap diakses.
-app.use('/api/v1/users', usersRouter);
-// Tambahkan router lain di sini jika ada: app.use('/api/v1/posts', postsRouter);
+function printRouteList() {
+  const routes = [
+    // AI Chat Endpoints
+    { method: 'POST', path: '/api/chat', description: 'Stream chat dengan AI assistant' },
+    { method: 'POST', path: '/api/chat/:chatId', description: 'Continue chat dengan chatId tertentu' },
+    { method: 'GET', path: '/api/chats', description: 'Get semua chat untuk user yang sedang login' },
+    { method: 'GET', path: '/api/chat/:chatId/messages', description: 'Get pesan untuk chat tertentu' },
+    { method: 'DELETE', path: '/api/chat/:chatId', description: 'Delete chat' },
+    
+    // BMC Endpoints
+    { method: 'POST', path: '/api/bmc', description: 'Create Business Model Canvas baru' },
+    { method: 'GET', path: '/api/bmc/public', description: 'Get semua publik BMC posts (no auth)' },
+    { method: 'GET', path: '/api/bmc/my', description: 'Get BMC milik user yang sedang login' },
+    { method: 'GET', path: '/api/bmc/:id', description: 'Get BMC berdasarkan ID' },
+    { method: 'PUT', path: '/api/bmc/:id', description: 'Update BMC tertentu' },
+    { method: 'PATCH', path: '/api/bmc/:id/visibility', description: 'Toggle public/private visibility' },
+    { method: 'DELETE', path: '/api/bmc/:id', description: 'Delete BMC tertentu' },
+    
+    // Database Endpoints (from server.js)
+    { method: 'GET', path: '/api/v1/databases', description: 'Database management' },
+    
+    // Users Endpoints (from OpenAPI spec)
+    { method: 'GET', path: '/api/v1/users', description: 'Greet authenticated user' },
+    
+    // Auth Endpoints
+    { method: 'POST', path: '/api/v1/auth/webhooks', description: 'Authentication webhooks' },
+    
+    // Protected Endpoints
+    { method: 'GET', path: '/api/v1/protected', description: 'Protected test endpoints' }
+  ];
 
-// --- 2. Fungsi Pencetak Manual ---
-function printRouteList(router, prefix) {
-  console.log('----------------------------------------------------');
-  console.log('         DAFTAR ENDPOINT KIVO API');
-  console.log('----------------------------------------------------');
-  console.log('| METHOD   | PATH');
-  console.log('----------------------------------------------------');
+  console.log('====================================================================');
+  console.log('                     DAFTAR ENDPOINT KIVO API');
+  console.log('====================================================================');
+  console.log('| METHOD   | PATH                                    | DESKRIPSI');
+  console.log('====================================================================');
 
-  router.stack.forEach((layer) => {
-    if (layer.route) {
-      const methods = Object.keys(layer.route.methods).join(', ').toUpperCase();
-      // Prefix harus ditambahkan secara manual
-      const routePath = prefix + layer.route.path;
-      console.log(`| ${methods.padEnd(8)} | ${routePath}`);
-    }
+  routes.forEach((route) => {
+    const methodStr = route.method.padEnd(8);
+    const pathStr = route.path.padEnd(39);
+    const descStr = route.description;
+    
+    console.log(`| ${methodStr} | ${pathStr} | ${descStr}`);
   });
 
-  console.log('----------------------------------------------------');
+  console.log('====================================================================');
+  console.log(`Total endpoints: ${routes.length}`);
+
+  // Informasi tambahan
+  console.log('\n✧ Status Authentication:');
+  console.log('  • /api/v1/databases, /api/v1/protected  : Requires auth');
+  console.log('  • /api/bmc/my, /api/bmc/*                 : Requires auth');
+  console.log('  • /api/chat, /api/chats, /api/chat/*      : Requires auth');
+  console.log('  • /api/v1/users                           : Requires auth');
+  console.log('  • /api/bmc/public, /api/auth/webhooks   : No auth required');
+  console.log('  • /api/v1/auth/webhooks                   : Special webhook (raw body)');
+  
+  console.log('\n✧ Fitur Utama API:');
+  console.log('  • Chat AI     : Real-time AI assistant untuk Business Model Canvas');
+  console.log('  • Management BMC: CRUD operations untuk BMC');
+  console.log('  • Users       : User management dan authentication');
+  
+  console.log('\n✧ Spesifikasi Teknis:');
+  console.log('  • Streaming   : Server-Sent Events (SSE) untuk chat AI');
+  console.log('  • Auth        : Better Auth (Bearer token)');
+  console.log('  • Data Format : JSON');
+  console.log('  • IDs         : MongoDB ObjectId format');
 }
 
-// --- 3. Eksekusi dan Keluar ---
-printRouteList(usersRouter, '/api/v1/users');
+// Eksekusi fungsi
+printRouteList();
 
-// Matikan proses karena ini adalah script utility dan harus keluar segera.
+// Keluar dari proses
 process.exit(0);
