@@ -37,6 +37,16 @@ chatSchema.set('toJSON', {
   },
 });
 
+// Location schema for user messages
+const locationSchema = new mongoose.Schema(
+  {
+    latitude: { type: Number },
+    longitude: { type: Number },
+    accuracy: { type: Number },
+  },
+  { _id: false },
+);
+
 // Message Schema
 const messageSchema = new mongoose.Schema(
   {
@@ -62,6 +72,11 @@ const messageSchema = new mongoose.Schema(
     // For tool responses
     tool_call_id: {
       type: String,
+    },
+    // Location data from user
+    location: {
+      type: locationSchema,
+      default: undefined,
     },
   },
   {

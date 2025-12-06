@@ -189,6 +189,34 @@ export async function deleteBmc(req, res) {
 }
 
 /**
+ * GET /api/bmc/chat/:chatId - Get BMC by chat ID
+ */
+export async function getBmcByChatId(req, res) {
+  const { chatId } = req.params;
+
+  try {
+    const bmcPost = await bmcService.getBmcByChatId(chatId);
+    if (!bmcPost) {
+      return res.status(404).json({
+        success: false,
+        message: 'BMC data not found for this chat.',
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: bmcPost,
+    });
+  } catch (error) {
+    console.error('Get BMC by Chat ID Error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to get BMC data.',
+    });
+  }
+}
+
+/**
  * PATCH /api/bmc/:id/visibility - Toggle BMC visibility
  */
 export async function toggleVisibility(req, res) {

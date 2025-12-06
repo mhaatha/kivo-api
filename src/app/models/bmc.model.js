@@ -1,19 +1,16 @@
 import mongoose from 'mongoose';
 
-// Schema for coordinate (location)
-const coordinateSchema = new mongoose.Schema(
+// Schema for location
+const locationSchema = new mongoose.Schema(
   {
-    lat: {
+    latitude: {
       type: Number,
-      required: true,
     },
-    long: {
+    longitude: {
       type: Number,
-      required: true,
     },
-    alt: {
+    accuracy: {
       type: Number,
-      default: 0,
     },
   },
   { _id: false },
@@ -48,9 +45,9 @@ const itemContentSchema = new mongoose.Schema(
 // BMC Post Schema
 const bmcPostSchema = new mongoose.Schema(
   {
-    coordinat: {
-      type: coordinateSchema,
-      default: { lat: 0, long: 0, alt: 0 },
+    location: {
+      type: locationSchema,
+      default: null,
     },
     authorId: {
       type: String,

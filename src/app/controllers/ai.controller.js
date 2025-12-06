@@ -84,8 +84,9 @@ export async function streamChat(req, res) {
     }
 
     // --- 2. SAVE USER MESSAGE TO DB ---
+    const { location } = req.body;
     if (userMessageContent) {
-      await chatService.createMessage(currentChatId, 'user', userMessageContent);
+      await chatService.createMessage(currentChatId, 'user', userMessageContent, null, null, location);
     }
 
     // --- 3. RUN BMC AGENT ---
