@@ -57,6 +57,10 @@ const bmcPostSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+    chatId: {
+      type: String,
+      index: true,
+    },
     isPublic: {
       type: Boolean,
       default: false,

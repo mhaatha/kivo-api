@@ -106,27 +106,30 @@ describe('BMC Service', () => {
   });
 
   describe('BMC tool result parsing', () => {
-    it('should parse postBmcToDatabase result correctly', () => {
+    it('should parse generateAndSaveBMC result correctly', () => {
       const result = {
         status: 'success',
-        system_note: 'BMC created. SAVE THIS ID TO MEMORY: 507f1f77bcf86cd799439011',
         bmcId: '507f1f77bcf86cd799439011',
+        blocksGenerated: 9,
+        message: 'BMC berhasil dibuat dan disimpan.',
       };
       
       expect(result.status).toBe('success');
       expect(result.bmcId).toBeDefined();
-      expect(result.system_note).toContain(result.bmcId);
+      expect(result.blocksGenerated).toBe(9);
     });
 
-    it('should parse updateBmcToDatabase result correctly', () => {
+    it('should parse updateBMC result correctly', () => {
       const result = {
         status: 'success',
-        system_note: 'BMC data updated successfully.',
         bmcId: '507f1f77bcf86cd799439011',
+        blocksUpdated: 3,
+        message: 'BMC berhasil diperbarui.',
       };
       
       expect(result.status).toBe('success');
       expect(result.bmcId).toBeDefined();
+      expect(result.blocksUpdated).toBeGreaterThan(0);
     });
 
     it('should handle failed BMC operation', () => {

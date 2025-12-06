@@ -1,203 +1,256 @@
 /**
  * BMC Tools Module
- * Tool definitions for BMC-related AI operations
+ * Tool definitions for BMC-related AI operations using generateObject
  */
 
 import { z } from 'zod';
+import { generateObject } from 'ai';
 import { BmcPost } from '../../models/bmc.model.js';
-import { normalizeBmcData } from '../../utils/bmc.utils.js';
+import { getAIModel } from '../../config/ai.config.js';
 
-// Zod schema for coordinates
-const coordinatesSchema = z.object({
-  lat: z.number(),
-  lon: z.number(),
-}).optional().describe('Optional location coordinates');
+// Valid BMC tags
+const BMC_TAGS = [
+  'customer_segments',
+  'value_propositions',
+  'channels',
+  'customer_relationships',
+  'revenue_streams',
+  'key_resources',
+  'key_activities',
+  'key_partnerships',
+  'cost_structure',
+];
 
-// Zod schema for BMC item
-const bmcItemSchema = z.object({
-  tag: z.string().describe(
-    'BMC block tag. Use snake_case: customer_segments, value_propositions, channels, customer_relationships, revenue_streams, key_resources, key_activities, key_partnerships, cost_structure'
-  ),
-  content: z.string().min(1).describe('Content/description for this BMC block'),
+// Schema for a single BMC block
+const bmcBlockSchema = z.object({
+  tag: z.enum(/** @type {[string, ...string[]]} */ (BMC_TAGS)),
+  content: z.string().min(10).describe('Detailed description for this BMC block (min 10 chars)'),
 });
 
-// Zod schema for BMC data array
-const bmcDataSchema = z.array(bmcItemSchema).min(1).describe(
-  'Array of BMC blocks. Each block has tag (snake_case) and content'
-);
+// Schema for complete BMC structure - used by generateObject
+const bmcObjectSchema = z.object({
+  customer_segments: z.string().min(10).describe('Target customers: demographics, behaviors, needs'),
+  value_propositions: z.string().min(10).describe('Unique value offered to customers'),
+  channels: z.string().min(10).describe('How to reach and deliver value to customers'),
+  customer_relationships: z.string().min(10).describe('Type of relationship with customers'),
+  revenue_streams: z.string().min(10).describe('How the business generates income'),
+  key_resources: z.string().min(10).describe('Essential assets needed to operate'),
+  key_activities: z.string().min(10).describe('Critical actions to deliver value'),
+  key_partnerships: z.string().min(10).describe('Network of partners and suppliers'),
+  cost_structure: z.string().min(10).describe('Major costs involved in the business'),
+});
+
+// Schema for partial BMC update
+const bmcPartialSchema = bmcObjectSchema.partial();
 
 /**
- * Get user coordinates
- * @param {string} userId - The user ID
- * @returns {Promise<Object>} - Coordinates object
+ * Convert BMC object to items array format for database
  */
-async function getUserCoordinates(userId) {
-  console.log(`📍 [LOCATION] Attempting to retrieve coordinates for user: ${userId}`);
-  
-  // Return default coordinates - frontend can override via request context later
-  const defaultCoordinates = {
-    lat: -6.212249928667231,
-    lon: 106.79734681365301,
-    source: 'default'
-  };
-  
-  console.log(`📍 [LOCATION] Returning default coordinates for user: ${userId}`);
-  return defaultCoordinates;
+function bmcObjectToItems(bmcObject) {
+  return Object.entries(bmcObject)
+    .filter(([_, content]) => content && content.trim().length > 0)
+    .map(([tag, content]) => ({ tag, content }));
 }
 
 /**
- * Post new BMC to database
- * @param {Array} bmcData - Array of BMC items
- * @param {Object} coordinates - Optional coordinates
- * @param {string} userId - The user ID
- * @returns {Promise<Object>} - Result object
+ * Generate BMC object using AI
  */
-async function postBmcToDatabase(bmcData, coordinates, userId) {
-  // Default coordinates
-  let finalCoord = { lat: -6.212249928667231, lon: 106.79734681365301 };
+async function generateBmcObject(businessContext, existingBmc = null) {
+  const schema = existingBmc ? bmcPartialSchema : bmcObjectSchema;
+  
+  const prompt = existingBmc
+    ? `Update the following Business Model Canvas based on new context.
+       
+Current BMC:
+${JSON.stringify(existingBmc, null, 2)}
 
-  // Check if valid coordinates were provided
-  if (coordinates && typeof coordinates.lat === 'number' && typeof coordinates.lon === 'number') {
-    finalCoord = { ...finalCoord, ...coordinates };
-    console.log('📍 [POST] Using detected coordinates:', finalCoord);
-  } else {
-    console.log('📍 [POST] Using DEFAULT coordinates.');
-  }
+New context/changes:
+${businessContext}
 
-  // Map to Mongoose schema (field 'long' is required)
-  const coordForModel = { lat: finalCoord.lat, long: finalCoord.lon };
+Generate updated BMC blocks. Only include blocks that need changes.`
+    : `Generate a complete Business Model Canvas based on this business context:
 
+${businessContext}
+
+Create detailed, actionable content for each BMC block based on the conversation context.`;
+
+  console.log(`[BMC] 🤖 generateObject starting...`);
+  
   try {
-    console.log('📝 [POST] Creating new BMC. Items:', bmcData?.length || 0);
-    if (!bmcData || !Array.isArray(bmcData)) {
-      return { status: 'failed', message: 'Invalid data.' };
-    }
-
-    // Normalize tags to snake_case
-    const normalizedData = normalizeBmcData(bmcData);
-    console.log('📝 [POST] Normalized tags:', normalizedData.map((i) => i.tag));
-
-    const newBmcPost = new BmcPost({
-      coordinat: coordForModel,
-      authorId: userId,
-      isPublic: false,
-      items: normalizedData,
+    const result = await generateObject({
+      model: getAIModel(),
+      schema,
+      prompt,
     });
-
-    const savedBmcPost = await newBmcPost.save();
-    console.log('✅ [POST] Success. ID:', savedBmcPost._id);
-
-    return {
-      status: 'success',
-      system_note: 'BMC created. SAVE THIS ID TO MEMORY: ' + savedBmcPost._id.toString(),
-      bmcId: savedBmcPost._id.toString(),
-    };
+    
+    console.log(`[BMC] 🤖 generateObject completed`);
+    return result.object;
   } catch (error) {
-    console.error('❌ Error Post BMC:', error);
-    return { status: 'failed', message: error.message };
-  }
-}
-
-
-/**
- * Update existing BMC in database
- * @param {string} bmcId - The BMC ID to update
- * @param {Array} bmcData - Array of BMC items
- * @param {string} userId - The user ID
- * @returns {Promise<Object>} - Result object
- */
-async function updateBmcToDatabase(bmcId, bmcData, userId) {
-  try {
-    console.log(`📝 [UPDATE] Updating BMC ID: ${bmcId}. Items: ${bmcData?.length || 0}`);
-    if (!bmcId) return { status: 'failed', message: 'BMC ID required.' };
-    if (!bmcData || !Array.isArray(bmcData)) {
-      return { status: 'failed', message: 'BMC data empty.' };
-    }
-
-    // Normalize tags to snake_case
-    const normalizedData = normalizeBmcData(bmcData);
-    console.log('📝 [UPDATE] Normalized tags:', normalizedData.map((i) => i.tag));
-
-    const updatedBmcPost = await BmcPost.findOneAndUpdate(
-      { _id: bmcId, authorId: userId },
-      { $set: { items: normalizedData, updatedAt: new Date() } },
-      { new: true, runValidators: true },
-    );
-
-    if (!updatedBmcPost) {
-      return { status: 'failed', message: 'BMC not found or unauthorized.' };
-    }
-
-    console.log('✅ [UPDATE] Success.');
-    return {
-      status: 'success',
-      system_note: 'BMC data updated successfully.',
-      bmcId: updatedBmcPost._id.toString(),
-    };
-  } catch (error) {
-    console.error('❌ Error Update BMC:', error);
-    return { status: 'failed', message: error.message };
+    console.error(`[BMC] 🤖 generateObject failed:`, error.message);
+    throw error;
   }
 }
 
 /**
- * Create BMC tools with user context
- * @param {string} userId - The user ID for tool execution context
- * @returns {Object} - Object containing all BMC-related tools
+ * Create BMC tools with user and chat context
  */
-export function createBmcTools(userId) {
+export function createBmcTools(userId, chatId) {
   return {
-    getUserCoordinates: {
-      description: 'Get user location coordinates. Optional - call this if you want to include location data in BMC.',
-      parameters: z.object({}),
-      execute: async () => {
-        console.log(`[EXEC] ⚙️ getUserCoordinates for user: ${userId}`);
-        const result = await getUserCoordinates(userId);
-        console.log(`[EXEC] ⚙️ getUserCoordinates result:`, result);
-        return result;
-      },
-    },
-    postBmcToDatabase: {
-      description: 'Save a new BMC to database. REQUIRED: bmcData array with at least one block. Example: bmcData: [{tag: "customer_segments", content: "Young professionals aged 25-35"}]',
+    generateAndSaveBMC: {
+      description: `Membuat dan menyimpan Business Model Canvas ke database.
+
+KAPAN DIPANGGIL:
+- User meminta "buatkan BMC", "simpan BMC", atau setuju dengan "oke", "gas", "lanjut"
+- Sudah ada info bisnis dari percakapan
+
+PENTING - Parameter businessContext:
+- WAJIB berisi rangkuman LENGKAP ide bisnis dari SELURUH percakapan
+- Minimal 50 karakter
+- Contoh: "Bisnis coffee shop untuk mahasiswa 18-25 tahun di area kampus. Produk: kopi susu kekinian harga 15-25rb dan snack. Revenue dari penjualan langsung. Target 100 cup/hari."
+
+JANGAN panggil dengan businessContext kosong!`,
       parameters: z.object({
-        coordinates: coordinatesSchema,
-        bmcData: bmcDataSchema,
+        businessContext: z
+          .string()
+          .min(50)
+          .describe('WAJIB ISI: Rangkuman lengkap ide bisnis dari percakapan. Contoh: "Bisnis X untuk target Y dengan produk Z, harga A, revenue dari B"'),
       }),
-      execute: async ({ bmcData, coordinates }) => {
-        console.log(`[EXEC] ⚙️ postBmcToDatabase with ${bmcData?.length} items`);
-        console.log(`[EXEC] ⚙️ bmcData:`, JSON.stringify(bmcData));
-        console.log(`[EXEC] ⚙️ Coordinates:`, coordinates || 'using default');
+      execute: async (args) => {
+        console.log(`[BMC] 🎯 Generating BMC for user: ${userId}`);
+        console.log(`[BMC] 📝 Raw args:`, JSON.stringify(args));
         
-        // Validate bmcData before calling service
-        if (!bmcData || !Array.isArray(bmcData) || bmcData.length === 0) {
-          console.error(`[EXEC] ❌ bmcData is empty or invalid`);
+        const businessContext = args?.businessContext;
+        console.log(`[BMC] 📝 Context length: ${businessContext?.length || 0} chars`);
+        console.log(`[BMC] 📝 Context preview: ${businessContext?.substring(0, 100)}...`);
+
+        if (!businessContext || businessContext.length < 50) {
+          console.log(`[BMC] ⚠️ Context too short, returning error`);
           return {
             status: 'failed',
-            message: 'bmcData is required. Provide at least one BMC block with tag and content.',
-            example: { tag: 'customer_segments', content: 'Your target customer description' },
+            message: 'Business context terlalu pendek. Minimal 50 karakter diperlukan.',
           };
         }
-        
-        const result = await postBmcToDatabase(bmcData, coordinates, userId);
-        console.log(`[EXEC] ⚙️ postBmcToDatabase result:`, result);
-        return result;
+
+        try {
+          // Generate structured BMC using AI
+          console.log(`[BMC] 🔄 Calling generateObject...`);
+          const bmcObject = await generateBmcObject(businessContext);
+          console.log(`[BMC] ✅ Generated ${Object.keys(bmcObject).length} blocks`);
+
+          // Convert to database format
+          const items = bmcObjectToItems(bmcObject);
+
+          if (items.length === 0) {
+            return {
+              status: 'failed',
+              message: 'Failed to generate BMC blocks. Please provide more business context.',
+            };
+          }
+
+          // Save to database
+          const newBmc = new BmcPost({
+            coordinat: { lat: 0, long: 0 },
+            authorId: userId,
+            chatId,
+            isPublic: false,
+            items,
+          });
+
+          const saved = await newBmc.save();
+          console.log(`[BMC] 💾 Saved BMC ID: ${saved._id}`);
+
+          return {
+            status: 'success',
+            bmcId: saved._id.toString(),
+            blocksGenerated: items.length,
+            message: 'BMC berhasil dibuat dan disimpan.',
+          };
+        } catch (error) {
+          console.error(`[BMC] ❌ Error:`, error.message);
+          console.error(`[BMC] ❌ Stack:`, error.stack);
+          return {
+            status: 'failed',
+            message: `Gagal membuat BMC: ${error.message}`,
+          };
+        }
       },
     },
-    updateBmcToDatabase: {
-      description: 'Update existing BMC with new or modified blocks. Use the bmcId from previous postBmcToDatabase result or from system info.',
+
+    updateBMC: {
+      description: `Update an existing Business Model Canvas with new information.
+Use this when user wants to modify or add details to an existing BMC.
+The updateContext should describe what changes or additions to make.`,
       parameters: z.object({
-        bmcId: z.string().describe('The BMC ID to update (from postBmcToDatabase result or system info)'),
-        bmcData: bmcDataSchema,
+        bmcId: z.string().describe('The BMC ID to update (from previous generateAndSaveBMC result or system info)'),
+        updateContext: z
+          .string()
+          .min(20)
+          .describe('Description of changes or new information to incorporate into the BMC.'),
       }),
-      execute: async ({ bmcId, bmcData }) => {
-        console.log(`[EXEC] ⚙️ updateBmcToDatabase ID: ${bmcId}, items: ${bmcData?.length}`);
-        const result = await updateBmcToDatabase(bmcId, bmcData, userId);
-        console.log(`[EXEC] ⚙️ updateBmcToDatabase result:`, result);
-        return result;
+      execute: async ({ bmcId, updateContext }) => {
+        console.log(`[BMC] 🔄 Updating BMC: ${bmcId}`);
+
+        try {
+          // Fetch existing BMC
+          const existingBmc = await BmcPost.findOne({ _id: bmcId, authorId: userId });
+          
+          if (!existingBmc) {
+            return {
+              status: 'failed',
+              message: 'BMC tidak ditemukan atau Anda tidak memiliki akses.',
+            };
+          }
+
+          // Convert existing items to object format
+          const existingObject = {};
+          for (const item of existingBmc.items) {
+            existingObject[item.tag] = item.content;
+          }
+
+          // Generate updated BMC
+          const updatedObject = await generateBmcObject(updateContext, existingObject);
+          console.log(`[BMC] ✅ Updated ${Object.keys(updatedObject).length} blocks`);
+
+          // Merge with existing (updated fields override)
+          const mergedObject = { ...existingObject, ...updatedObject };
+          const items = bmcObjectToItems(mergedObject);
+
+          // Update in database
+          existingBmc.items = items;
+          existingBmc.updatedAt = new Date();
+          await existingBmc.save();
+
+          console.log(`[BMC] 💾 Updated BMC ID: ${bmcId}`);
+
+          return {
+            status: 'success',
+            bmcId: bmcId,
+            blocksUpdated: Object.keys(updatedObject).length,
+            message: 'BMC berhasil diperbarui.',
+          };
+        } catch (error) {
+          console.error(`[BMC] ❌ Error:`, error.message);
+          return {
+            status: 'failed',
+            message: `Gagal memperbarui BMC: ${error.message}`,
+          };
+        }
+      },
+    },
+
+    performWebSearch: {
+      description: 'Search the web for market research, competitor analysis, or industry data to enrich BMC analysis.',
+      parameters: z.object({
+        query: z.string().min(3).describe('Search query - be specific for better results'),
+      }),
+      execute: async ({ query }) => {
+        const { createSearchTools } = await import('./search.tools.js');
+        const searchTools = createSearchTools();
+        return searchTools.performWebSearch.execute({ query });
       },
     },
   };
 }
 
 // Export schemas for testing
-export { coordinatesSchema, bmcItemSchema, bmcDataSchema };
+export { bmcObjectSchema, bmcPartialSchema, bmcBlockSchema };

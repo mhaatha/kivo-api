@@ -19,11 +19,13 @@ vi.mock('../../src/app/services/chat.service.js', () => ({
   userOwnsChat: vi.fn(),
 }));
 
-vi.mock('../../src/app/services/ai.service.js', () => ({
+vi.mock('../../src/app/ai/prompts/bmc.prompts.js', () => ({
   BMC_SYSTEM_PROMPT: 'Test system prompt',
-  getChatCompletion: vi.fn(),
-  getStreamingCompletion: vi.fn(),
-  executeTool: vi.fn(),
+  buildDynamicPrompt: vi.fn(() => 'Test system prompt'),
+}));
+
+vi.mock('../../src/app/ai/tools/index.js', () => ({
+  getTools: vi.fn(() => ({})),
 }));
 
 vi.mock('../../src/app/validations/ai.validation.js', () => ({
