@@ -250,6 +250,7 @@ npm run route:list
 
 1. **Setup Environment** - Selesaikan konfigurasi `.env`
 2. **Jalankan MongoDB** - `docker-compose up -d`
+3. **Aktifkan fitur transaction** - `docker exec -it kivo-mongo mongosh --eval "rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'localhost:27017' }] })"`
 3. **Install Dependencies** - `npm install`
 4. **Development Mode** - `npm run dev`
 5. **Testing** - `npm run test:watch`
