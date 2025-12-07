@@ -7,7 +7,7 @@
   <p align="center">
     <h2>Menciptakan strategi untuk bisnismu!</h2>
     <br />
-    <a href="#live-demo"><strong>Watch Demo »</strong></a>
+    <a href="https://youtu.be/I2aLFmf_Lg4?si=1ZA7DlaE15g-dR9A"><strong>Watch Demo »</strong></a>
     <br />
     <br />
     <a href="#about">About</a>
