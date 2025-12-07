@@ -4,7 +4,7 @@ import { BmcPost } from '../models/bmc.model.js';
  * Find all BMC posts with optional filter
  */
 export async function findAll(filter = {}) {
-  return BmcPost.find(filter).sort({ createdAt: -1 });
+  return BmcPost.find(filter).sort({ createdAt: -1 }).lean();
 }
 
 /**

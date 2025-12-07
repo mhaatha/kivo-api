@@ -3,6 +3,32 @@ import * as bmcService from '../services/bmc.service.js';
 import { validateBmcUpdate, validateBmcId } from '../validations/bmc.validation.js';
 
 /**
+ * Parse MongoDB Extended JSON date to ISO string
+ */
+function parseDate(date) {
+  if (!date) return null;
+  // Handle Extended JSON format: { $date: "..." }
+  if (date.$date) return new Date(date.$date).toISOString();
+  // Handle Date object
+  if (date instanceof Date) return date.toISOString();
+  // Handle ISO string
+  return date;
+}
+
+/**
+ * Transform lean BMC document to response format
+ */
+function transformBmc(bmc) {
+  const { _id, __v, createdAt, updatedAt, ...rest } = bmc;
+  return {
+    id: _id?.toString(),
+    ...rest,
+    createdAt: parseDate(createdAt),
+    updatedAt: parseDate(updatedAt),
+  };
+}
+
+/**
  * GET /api/bmc/public - Get all public BMC posts
  */
 export async function getPublicBmcPosts(req, res) {
@@ -12,7 +38,7 @@ export async function getPublicBmcPosts(req, res) {
     return res.status(200).json({
       success: true,
       count: bmcPosts.length,
-      data: bmcPosts,
+      data: bmcPosts.map(transformBmc),
     });
   } catch (error) {
     console.error('Get Public BMC Error:', error);

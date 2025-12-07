@@ -63,6 +63,12 @@ const bmcPostSchema = new mongoose.Schema(
       default: false,
     },
     items: [itemContentSchema],
+    createdAt: {
+      type: Date,
+    },
+    updatedAt: {
+      type: Date,
+    },
   },
   {
     timestamps: true,
@@ -71,16 +77,21 @@ const bmcPostSchema = new mongoose.Schema(
 
 // Virtual for id
 bmcPostSchema.virtual('id').get(function () {
-  return this._id.toString();
+  return this._id?.toString();
 });
 
 // Ensure virtuals are included in JSON output
 bmcPostSchema.set('toJSON', {
   virtuals: true,
-  transform: (doc, ret) => {
-    ret.id = ret._id;
+  transform: (_, ret) => {
+    if (ret._id) {
+      ret.id = ret._id;
+    }
     delete ret._id;
     delete ret.__v;
+    // Ensure timestamps are included (for legacy documents)
+    if (!ret.createdAt) ret.createdAt = null;
+    if (!ret.updatedAt) ret.updatedAt = null;
     return ret;
   },
 });
