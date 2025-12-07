@@ -48,9 +48,9 @@ app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/protected', protectedRouter);
 
 // Routes from feat/ai-chat branch (AI Chat & BMC management)
-app.use('/api/chat', aiRouter);
-app.use('/api/chats', aiRouter);
-app.use('/api/bmc', bmcRouter);
+app.use('/api/v1/chat', aiRouter);
+app.use('/api/v1/chats', aiRouter);
+app.use('/api/v1/bmc-all', bmcRouter);
 
 app.listen(port, '0.0.0.0', () => {
   console.log(`Server is running on port ${port}`);
