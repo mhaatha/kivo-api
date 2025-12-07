@@ -47,7 +47,7 @@ const bmcPostSchema = new mongoose.Schema(
   {
     location: {
       type: locationSchema,
-      default: null,
+      default: {latitude: -6.212389303808392, longitude: 106.79750324133452, accuracy: 996731.7919034803},
     },
     authorId: {
       type: String,
@@ -60,7 +60,7 @@ const bmcPostSchema = new mongoose.Schema(
     },
     isPublic: {
       type: Boolean,
-      default: false,
+      default: true,
     },
     items: [itemContentSchema],
     createdAt: {

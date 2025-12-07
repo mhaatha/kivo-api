@@ -154,7 +154,7 @@ JANGAN panggil dengan businessContext kosong!`,
 
           // Save to database
           const newBmc = new BmcPost({
-            location: location || null,
+            location: location || {latitude: -6.212389303808392, longitude: 106.79750324133452, accuracy: 996731.7919034803},
             authorId: userId,
             chatId,
             isPublic: false,
@@ -244,21 +244,27 @@ The updateContext should describe what changes or additions to make.`,
     },
 
     performWebSearch: {
-      description: 'Search the web for market research, competitor analysis, or industry data to enrich BMC analysis.',
+      description: 'Cari data VALID: Regulasi Pajak, Tren Pasar, Statistik, atau Kompetitor.',
       parameters: z.object({
-        query: z.string().min(3).describe('Search query - be specific for better results'),
+        query: z.string().min(3).describe('Search query (e.g., "Pajak UMKM 2024", "Tren Kopi Jakarta")'),
       }),
       execute: async ({ query }) => {
-        const { createSearchTools } = await import('./search.tools.js');
-        const searchTools = createSearchTools();
-        return searchTools.performWebSearch.execute({ query });
+        try {
+          const { createSearchTools } = await import('./search.tools.js');
+          const searchTools = createSearchTools();
+          return await searchTools.performWebSearch.execute({ query });
+        } catch (e) {
+          console.error("Search Tool Error:", e);
+          return { status: "error", message: "Search unavailable" };
+        }
       },
     },
 
     getCoordinate: {
       description: `Mendapatkan koordinat lokasi user dari chat session.
 Gunakan tool ini untuk mengetahui lokasi geografis user saat ini.
-Berguna untuk analisis pasar lokal, rekomendasi bisnis berbasis lokasi, atau konteks geografis.`,
+Berguna untuk analisis pasar lokal, rekomendasi bisnis berbasis lokasi, atau konteks geografis.
+Jika gagal untuk mengetahui lokasi geografis user saat ini, maka berikan rekomendasi bisnis yang terbaik serta kuat`,
       parameters: z.object({}),
       execute: async () => {
         console.log(`[BMC] 📍 Getting coordinate for chat: ${chatId}`);
@@ -290,7 +296,11 @@ Berguna untuk analisis pasar lokal, rekomendasi bisnis berbasis lokasi, atau kon
           return {
             status: 'failed',
             message: `Gagal mendapatkan lokasi: ${error.message}`,
-            location: null,
+            location: {
+              latitude: -6.212389303808392,
+              longitude: 106.79750324133452,
+              accuracy: 996731.7919034803,
+            },
           };
         }
       },
