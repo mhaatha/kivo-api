@@ -40,7 +40,7 @@ async function seedBmcData() {
             },
             "authorId": "user_36KxgJsnUEJlQuFxLmiO7sdpd91",
             "chatId": "ce815aa2-36f0-4565-bd4b-1402d2a94bbf",
-            "isPublic": false,
+            "isPublic": true,
             "items": [
                 {
                     "tag": "customer_segments",
@@ -97,7 +97,7 @@ async function seedBmcData() {
             },
             "authorId": "user_36KxgJsnUEJlQuFxLmiO7sdpd91",
             "chatId": "ce815aa2-36f0-4565-bd4b-1402d2a94bbf",
-            "isPublic": false,
+            "isPublic": true,
             "items": [
                 {
                     "tag": "customer_segments",
@@ -154,7 +154,7 @@ async function seedBmcData() {
             },
             "authorId": "user_36KxgJsnUEJlQuFxLmiO7sdpd91",
             "chatId": "ce815aa2-36f0-4565-bd4b-1402d2a94bbf",
-            "isPublic": false,
+            "isPublic": true,
             "items": [
                 {
                     "tag": "customer_segments",
@@ -211,7 +211,7 @@ async function seedBmcData() {
             },
             "authorId": "user_36KxgJsnUEJlQuFxLmiO7sdpd91",
             "chatId": "ce815aa2-36f0-4565-bd4b-1402d2a94bbf",
-            "isPublic": false,
+            "isPublic": true,
             "items": [
                 {
                     "tag": "customer_segments",
@@ -268,7 +268,7 @@ async function seedBmcData() {
             },
             "authorId": "user_36KxgJsnUEJlQuFxLmiO7sdpd91",
             "chatId": "ce815aa2-36f0-4565-bd4b-1402d2a94bbf",
-            "isPublic": false,
+            "isPublic": true,
             "items": [
                 {
                     "tag": "customer_segments",
@@ -325,7 +325,7 @@ async function seedBmcData() {
             },
             "authorId": "user_36KxgJsnUEJlQuFxLmiO7sdpd91",
             "chatId": "ce815aa2-36f0-4565-bd4b-1402d2a94bbf",
-            "isPublic": false,
+            "isPublic": true,
             "items": [
                 {
                     "tag": "customer_segments",
@@ -382,7 +382,7 @@ async function seedBmcData() {
             },
             "authorId": "user_36KxgJsnUEJlQuFxLmiO7sdpd91",
             "chatId": "ce815aa2-36f0-4565-bd4b-1402d2a94bbf",
-            "isPublic": false,
+            "isPublic": true,
             "items": [
                 {
                     "tag": "customer_segments",
@@ -439,7 +439,7 @@ async function seedBmcData() {
             },
             "authorId": "user_36KxgJsnUEJlQuFxLmiO7sdpd91",
             "chatId": "ce815aa2-36f0-4565-bd4b-1402d2a94bbf",
-            "isPublic": false,
+            "isPublic": true,
             "items": [
                 {
                     "tag": "customer_segments",
@@ -496,7 +496,7 @@ async function seedBmcData() {
             },
             "authorId": "user_36KxgJsnUEJlQuFxLmiO7sdpd91",
             "chatId": "ce815aa2-36f0-4565-bd4b-1402d2a94bbf",
-            "isPublic": false,
+            "isPublic": true,
             "items": [
                 {
                     "tag": "customer_segments",
@@ -553,7 +553,7 @@ async function seedBmcData() {
             },
             "authorId": "user_36KxgJsnUEJlQuFxLmiO7sdpd91",
             "chatId": "ce815aa2-36f0-4565-bd4b-1402d2a94bbf",
-            "isPublic": false,
+            "isPublic": true,
             "items": [
                 {
                     "tag": "customer_segments",
@@ -610,7 +610,7 @@ async function seedBmcData() {
             },
             "authorId": "user_36KxgJsnUEJlQuFxLmiO7sdpd91",
             "chatId": "ce815aa2-36f0-4565-bd4b-1402d2a94bbf",
-            "isPublic": false,
+            "isPublic": true,
             "items": [
                 {
                     "tag": "customer_segments",
@@ -667,7 +667,7 @@ async function seedBmcData() {
             },
             "authorId": "user_36KxgJsnUEJlQuFxLmiO7sdpd91",
             "chatId": "ce815aa2-36f0-4565-bd4b-1402d2a94bbf",
-            "isPublic": false,
+            "isPublic": true,
             "items": [
                 {
                     "tag": "customer_segments",
@@ -724,7 +724,7 @@ async function seedBmcData() {
             },
             "authorId": "user_36KxgJsnUEJlQuFxLmiO7sdpd91",
             "chatId": "ce815aa2-36f0-4565-bd4b-1402d2a94bbf",
-            "isPublic": false,
+            "isPublic": true,
             "items": [
                 {
                     "tag": "customer_segments",
@@ -781,7 +781,7 @@ async function seedBmcData() {
             },
             "authorId": "user_36KxgJsnUEJlQuFxLmiO7sdpd91",
             "chatId": "ce815aa2-36f0-4565-bd4b-1402d2a94bbf",
-            "isPublic": false,
+            "isPublic": true,
             "items": [
                 {
                     "tag": "customer_segments",
@@ -838,7 +838,7 @@ async function seedBmcData() {
             },
             "authorId": "user_36KxgJsnUEJlQuFxLmiO7sdpd91",
             "chatId": "ce815aa2-36f0-4565-bd4b-1402d2a94bbf",
-            "isPublic": false,
+            "isPublic": true,
             "items": [
                 {
                     "tag": "customer_segments",
@@ -895,7 +895,7 @@ async function seedBmcData() {
             },
             "authorId": "user_36KxgJsnUEJlQuFxLmiO7sdpd91",
             "chatId": "ce815aa2-36f0-4565-bd4b-1402d2a94bbf",
-            "isPublic": false,
+            "isPublic": true,
             "items": [
                 {
                     "tag": "customer_segments",
@@ -952,7 +952,7 @@ async function seedBmcData() {
             },
             "authorId": "user_36KxgJsnUEJlQuFxLmiO7sdpd91",
             "chatId": "ce815aa2-36f0-4565-bd4b-1402d2a94bbf",
-            "isPublic": false,
+            "isPublic": true,
             "items": [
                 {
                     "tag": "customer_segments",
@@ -1009,7 +1009,7 @@ async function seedBmcData() {
             },
             "authorId": "user_36KxgJsnUEJlQuFxLmiO7sdpd91",
             "chatId": "ce815aa2-36f0-4565-bd4b-1402d2a94bbf",
-            "isPublic": false,
+            "isPublic": true,
             "items": [
                 {
                     "tag": "customer_segments",
@@ -1066,7 +1066,7 @@ async function seedBmcData() {
             },
             "authorId": "user_36KxgJsnUEJlQuFxLmiO7sdpd91",
             "chatId": "ce815aa2-36f0-4565-bd4b-1402d2a94bbf",
-            "isPublic": false,
+            "isPublic": true,
             "items": [
                 {
                     "tag": "customer_segments",
@@ -1123,7 +1123,7 @@ async function seedBmcData() {
             },
             "authorId": "user_36KxgJsnUEJlQuFxLmiO7sdpd91",
             "chatId": "ce815aa2-36f0-4565-bd4b-1402d2a94bbf",
-            "isPublic": false,
+            "isPublic": true,
             "items": [
                 {
                     "tag": "customer_segments",
