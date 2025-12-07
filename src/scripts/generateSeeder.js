@@ -1172,7 +1172,7 @@ async function seedBmcData() {
         }
     ];
 
-  console.log('\\n🌱 Seeding BMC data...');
+  console.log('\n🌱 Seeding BMC data...');
   
   // Transform date format from MongoDB JSON export to JavaScript Date and _id to ObjectId
   const transformedData = bmcData.map(item => ({
@@ -1196,10 +1196,10 @@ async function seedBmcData() {
 
   // Show collection stats
   const count = await BmcPost.countDocuments();
-  console.log(`\\n📊 Total BMC posts in database: ${count}`);
+  console.log(`\n📊 Total BMC posts in database: ${count}`);
 
   await mongoose.disconnect();
-  console.log('\\n🔌 Disconnected from MongoDB');
+  console.log('\n🔌 Disconnected from MongoDB');
 }
 
 seedBmcData().catch(err => {
