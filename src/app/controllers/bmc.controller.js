@@ -72,7 +72,7 @@ export async function getBmcById(req, res) {
 
     return res.status(200).json({
       success: true,
-      data: bmcPost,
+      data: transformBmc(bmcPost),
     });
   } catch (error) {
     console.error('Get BMC Error:', error);
@@ -101,7 +101,7 @@ export async function getMyBmcPosts(req, res) {
     return res.status(200).json({
       success: true,
       count: bmcPosts.length,
-      data: bmcPosts,
+      data: bmcPosts.map(transformBmc),
     });
   } catch (error) {
     console.error('Get My BMC Error:', error);
@@ -125,7 +125,7 @@ export async function createBmc(req, res) {
     return res.status(201).json({
       success: true,
       message: 'BMC created successfully.',
-      data: bmcPost,
+      data: transformBmc(bmcPost.toObject()),
     });
   } catch (error) {
     console.error('Create BMC Error:', error);
@@ -167,7 +167,7 @@ export async function updateBmc(req, res) {
     return res.status(200).json({
       success: true,
       message: 'BMC updated successfully.',
-      data: updatedBmc,
+      data: transformBmc(updatedBmc.toObject ? updatedBmc.toObject() : updatedBmc),
     });
   } catch (error) {
     console.error('Update BMC Error:', error);
@@ -231,7 +231,7 @@ export async function getBmcByChatId(req, res) {
 
     return res.status(200).json({
       success: true,
-      data: bmcPost,
+      data: transformBmc(bmcPost),
     });
   } catch (error) {
     console.error('Get BMC by Chat ID Error:', error);
@@ -262,7 +262,7 @@ export async function toggleVisibility(req, res) {
     return res.status(200).json({
       success: true,
       message: `BMC is now ${updatedBmc.isPublic ? 'public' : 'private'}.`,
-      data: updatedBmc,
+      data: transformBmc(updatedBmc.toObject ? updatedBmc.toObject() : updatedBmc),
     });
   } catch (error) {
     console.error('Toggle Visibility Error:', error);

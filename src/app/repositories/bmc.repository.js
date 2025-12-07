@@ -11,21 +11,21 @@ export async function findAll(filter = {}) {
  * Find BMC by ID
  */
 export async function findById(bmcId) {
-  return BmcPost.findById(bmcId);
+  return BmcPost.findById(bmcId).lean();
 }
 
 /**
  * Find one BMC by filter
  */
 export async function findOne(filter) {
-  return BmcPost.findOne(filter);
+  return BmcPost.findOne(filter).lean();
 }
 
 /**
  * Find BMCs by filter
  */
 export async function find(filter) {
-  return BmcPost.find(filter).sort({ createdAt: -1 });
+  return BmcPost.find(filter).sort({ createdAt: -1 }).lean();
 }
 
 /**
