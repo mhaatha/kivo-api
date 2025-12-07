@@ -13,7 +13,7 @@ info:
     Most endpoints require authentication via Bearer token from Better Auth.
 
     ## Base URL
-    - Development: `http://localhost:3000`
+    - Development: `http://localhost:5000`
     - Production: `https://api.kivo.com`
 
     ## Rate Limiting
