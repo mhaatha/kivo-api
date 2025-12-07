@@ -1,8 +1,36 @@
-// Select the database to use.
-use('test');
+import 'dotenv/config';
+import mongoose from 'mongoose';
+import { BmcPost } from '../app/models/bmc.model.js';
 
-db.bmcposts.insertMany(
-    [
+const { ObjectId } = mongoose.Types;
+
+async function seedBmcData() {
+  const mongoUri = process.env.MONGODB_URI;
+  
+  if (!mongoUri) {
+    throw new Error('MONGODB_URI is not defined in environment variables');
+  }
+  
+  console.log('🔌 Connecting to MongoDB...');
+  
+  try {
+    await mongoose.connect(mongoUri, {
+      serverSelectionTimeoutMS: 10000,
+      socketTimeoutMS: 45000,
+    });
+    console.log(`✅ Connected to database: ${mongoose.connection.name}`);
+  } catch (error) {
+    console.error('❌ Failed to connect to MongoDB');
+    console.error('Error details:', error.message);
+    console.error('\nPossible solutions:');
+    console.error('1. Check your internet connection');
+    console.error('2. Verify MONGODB_URI in .env file is correct');
+    console.error('3. Ensure your IP is whitelisted in MongoDB Atlas');
+    console.error('4. Check if MongoDB Atlas cluster is running');
+    throw error;
+  }
+
+  const bmcData = [
         {
             "_id": "69345c5f1da1df4bf4000000",
             "location": {
@@ -573,7 +601,7 @@ db.bmcposts.insertMany(
             "__v": 0
         },
         {
-            "_id": "69345c5f1da1df4bf40000a"
+            "_id": "69345c5f1da1df4bf400000a"
             ,
             "location": {
                 "latitude": -7.9666,
@@ -630,7 +658,7 @@ db.bmcposts.insertMany(
             "__v": 0
         },
         {
-            "_id": "69345c5f1da1df4bf40000b"
+            "_id": "69345c5f1da1df4bf400000b"
             ,
             "location": {
                 "latitude": -8.65,
@@ -687,7 +715,7 @@ db.bmcposts.insertMany(
             "__v": 0
         },
         {
-            "_id": "69345c5f1da1df4bf40000c"
+            "_id": "69345c5f1da1df4bf400000c"
             ,
             "location": {
                 "latitude": -6.595,
@@ -744,7 +772,7 @@ db.bmcposts.insertMany(
             "__v": 0
         },
         {
-            "_id": "69345c5f1da1df4bf40000d"
+            "_id": "69345c5f1da1df4bf400000d"
             ,
             "location": {
                 "latitude": -6.1783,
@@ -801,7 +829,7 @@ db.bmcposts.insertMany(
             "__v": 0
         },
         {
-            "_id": "69345c5f1da1df4bf40000e"
+            "_id": "69345c5f1da1df4bf400000e"
             ,
             "location": {
                 "latitude": -6.2383,
@@ -858,7 +886,7 @@ db.bmcposts.insertMany(
             "__v": 0
         },
         {
-            "_id": "69345c5f1da1df4bf40000f"
+            "_id": "69345c5f1da1df4bf400000f"
             ,
             "location": {
                 "latitude": -1.2379,
@@ -915,7 +943,7 @@ db.bmcposts.insertMany(
             "__v": 0
         },
         {
-            "_id": "69345c5f1da1df4bf400010"
+            "_id": "69345c5f1da1df4bf4000010"
             ,
             "location": {
                 "latitude": -2.9909,
@@ -972,7 +1000,7 @@ db.bmcposts.insertMany(
             "__v": 0
         },
         {
-            "_id": "69345c5f1da1df4bf400011"
+            "_id": "69345c5f1da1df4bf4000011"
             ,
             "location": {
                 "latitude": -0.95,
@@ -1029,7 +1057,7 @@ db.bmcposts.insertMany(
             "__v": 0
         },
         {
-            "_id": "69345c5f1da1df4bf400012"
+            "_id": "69345c5f1da1df4bf4000012"
             ,
             "location": {
                 "latitude": 1.4748,
@@ -1086,7 +1114,7 @@ db.bmcposts.insertMany(
             "__v": 0
         },
         {
-            "_id": "69345c5f1da1df4bf400013"
+            "_id": "69345c5f1da1df4bf4000013"
             ,
             "location": {
                 "latitude": -3.3194,
@@ -1142,5 +1170,39 @@ db.bmcposts.insertMany(
             },
             "__v": 0
         }
-    ]
-)
+    ];
+
+  console.log('\\n🌱 Seeding BMC data...');
+  
+  // Transform date format from MongoDB JSON export to JavaScript Date and _id to ObjectId
+  const transformedData = bmcData.map(item => ({
+    ...item,
+    _id: new ObjectId(item._id),
+    createdAt: new Date(item.createdAt.$date),
+    updatedAt: new Date(item.updatedAt.$date)
+  }));
+  
+  // Clear existing data (optional - comment out if you want to keep existing data)
+  const existingCount = await BmcPost.countDocuments();
+  if (existingCount > 0) {
+    console.log(`⚠️  Found ${existingCount} existing documents. Clearing collection...`);
+    await BmcPost.deleteMany({});
+    console.log('✅ Collection cleared');
+  }
+
+  // Insert seed data
+  const result = await BmcPost.insertMany(transformedData);
+  console.log(`✅ Successfully inserted ${result.length} BMC posts`);
+
+  // Show collection stats
+  const count = await BmcPost.countDocuments();
+  console.log(`\\n📊 Total BMC posts in database: ${count}`);
+
+  await mongoose.disconnect();
+  console.log('\\n🔌 Disconnected from MongoDB');
+}
+
+seedBmcData().catch(err => {
+  console.error('❌ Error:', err.message);
+  process.exit(1);
+});

@@ -22,7 +22,8 @@
     "test:coverage": "vitest run --coverage",
     "test:integration": "vitest run tests/integration",
     "test:ai": "RUN_AI_TESTS=true vitest run tests/integration",
-    "route:list": "node src/scripts/routeList.js"
+    "route:list": "node src/scripts/routeList.js",
+    "seed:bmc": "node src/scripts/generateSeeder.js"
   },
   "dependencies": {
     "@ai-sdk/openai": "^2.0.77",
