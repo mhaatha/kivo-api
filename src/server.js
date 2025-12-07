@@ -5,7 +5,6 @@ import app from './app/index.js';
 import databasesRouter from './app/routes/db.route.js';
 import bmcRouteRouter from './app/routes/bmc.route.js';
 import authRouter from './app/routes/auth.route.js';
-import protectedRouter from './app/routes/protected.route.js';
 // Routes from feat/ai-chat branch
 import aiRouter from './app/routes/ai.js';
 import bmcRouter from './app/routes/bmc.js';
@@ -43,14 +42,13 @@ mongoose
 
 // Routes from main branch
 app.use('/api/v1/databases', databasesRouter);
-app.use('/api/v1/bmc', bmcRouteRouter);
+app.use('/api/v1/bmc', bmcRouter);
 app.use('/api/v1/auth', authRouter);
-app.use('/api/v1/protected', protectedRouter);
 
 // Routes from feat/ai-chat branch (AI Chat & BMC management)
 app.use('/api/v1/chat', aiRouter);
 app.use('/api/v1/chats', aiRouter);
-app.use('/api/v1/bmc-all', bmcRouter);
+// app.use('/api/v1/bmc-all', bmcRouter);
 
 app.listen(port, '0.0.0.0', () => {
   console.log(`Server is running on port ${port}`);
