@@ -26,8 +26,8 @@ info:
   version: 1.1.0
   contact:
     name: Kivo Team
-    email: support@kivo.com
-    url: https://kivo.com
+    email: 'mhafidza528@gmail.com'
+    url: 'https://github.com/mhaatha/kivo-api'
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
@@ -40,7 +40,7 @@ servers:
 
 externalDocs:
   description: Kivo API Documentation
-  url: https://docs.kivo.com
+  url: 'https://app.swaggerhub.com/apis/smknegeri7samarinda/kivo-api/1.0.0'
 
 tags:
   - name: Users
