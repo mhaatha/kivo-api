@@ -1,61 +1,56 @@
-import { BmcPost } from '../models/bmc.model.js';
+import * as bmcRepository from '../repositories/bmc.repository.js';
 
 /**
  * Get all public BMC posts
  */
 export async function getPublicBmcPosts() {
-  return BmcPost.find({ isPublic: true }).sort({ createdAt: -1 });
+  return bmcRepository.findAll({ isPublic: true });
 }
 
 /**
  * Get BMC by ID
  */
 export async function getBmcById(bmcId) {
-  return BmcPost.findById(bmcId);
+  return bmcRepository.findById(bmcId);
 }
 
 /**
  * Get BMCs by author ID
  */
 export async function getBmcsByAuthorId(authorId) {
-  return BmcPost.find({ authorId }).sort({ createdAt: -1 });
+  return bmcRepository.find({ authorId });
 }
 
 /**
  * Create new BMC
  */
 export async function createBmc(authorId, items = [], isPublic = false) {
-  const bmcPost = new BmcPost({
+  return bmcRepository.create({
     authorId,
     items,
     isPublic,
   });
-  return bmcPost.save();
 }
 
 /**
  * Update BMC by ID
  */
 export async function updateBmcById(bmcId, authorId, items) {
-  return BmcPost.findOneAndUpdate(
-    { _id: bmcId, authorId },
-    { $set: { items, updatedAt: new Date() } },
-    { new: true, runValidators: true },
-  );
+  return bmcRepository.updateByIdAndAuthor(bmcId, authorId, { items });
 }
 
 /**
  * Delete BMC by ID
  */
 export async function deleteBmcById(bmcId, authorId) {
-  return BmcPost.findOneAndDelete({ _id: bmcId, authorId });
+  return bmcRepository.deleteByIdAndAuthor(bmcId, authorId);
 }
 
 /**
  * Toggle BMC visibility
  */
 export async function toggleBmcVisibility(bmcId, authorId) {
-  const bmc = await BmcPost.findOne({ _id: bmcId, authorId });
+  const bmc = await bmcRepository.findOne({ _id: bmcId, authorId });
   if (!bmc) return null;
   
   bmc.isPublic = !bmc.isPublic;
@@ -66,7 +61,7 @@ export async function toggleBmcVisibility(bmcId, authorId) {
  * Get latest BMC for user
  */
 export async function getLatestBmcForUser(authorId) {
-  return BmcPost.findOne({ authorId }).sort({ createdAt: -1 });
+  return bmcRepository.findOne({ authorId });
 }
 
 /**
@@ -80,5 +75,5 @@ export function userOwnsBmc(bmc, userId) {
  * Get BMC by chat ID
  */
 export async function getBmcByChatId(chatId) {
-  return BmcPost.findOne({ chatId });
+  return bmcRepository.findOne({ chatId });
 }

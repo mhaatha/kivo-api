@@ -298,12 +298,13 @@ describeIfMongo('Integration Tests', () => {
       const { getTools } = await import('../../src/app/ai/tools/index.js');
       
       const tools = getTools('test-user-id');
-      expect(Object.keys(tools)).toHaveLength(3);
+      expect(Object.keys(tools)).toHaveLength(4);
       
       const toolNames = Object.keys(tools);
       expect(toolNames).toContain('generateAndSaveBMC');
       expect(toolNames).toContain('updateBMC');
       expect(toolNames).toContain('performWebSearch');
+      expect(toolNames).toContain('getCoordinate');
     });
   });
 });

@@ -1,14 +1,19 @@
-import { clerkClient, getAuth } from '@clerk/express';
+import { getAuth } from '@clerk/express';
+import * as protectedService from '../services/protected.service.js';
 
 export const protectedController = {
   async getAuthenticatedUser(req, res) {
-    console.log('asd');
-    // Use `getAuth()` to get the user's `userId`
     const { userId } = getAuth(req);
 
-    // Use Clerk's JavaScript Backend SDK to get the user's User object
-    const user = await clerkClient.users.getUser(userId);
-
-    return res.json({ user });
+    try {
+      const user = await protectedService.getAuthenticatedUser(userId);
+      return res.json({ user });
+    } catch (error) {
+      console.error('Get Authenticated User Error:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to get user information.',
+      });
+    }
   },
 };

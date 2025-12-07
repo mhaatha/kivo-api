@@ -1,4 +1,4 @@
-import { Chat, Message } from '../models/chat.model.js';
+import * as chatRepository from '../repositories/chat.repository.js';
 
 /**
  * Create a new chat session with custom UUID
@@ -7,47 +7,46 @@ import { Chat, Message } from '../models/chat.model.js';
  * @param {string} title - Chat title
  */
 export async function createChat(chatId, userId, title = 'New Chat') {
-  const chat = new Chat({ _id: chatId, userId, title });
-  return chat.save();
+  return chatRepository.createChat({ _id: chatId, userId, title });
 }
 
 /**
  * Get chat by ID
  */
 export async function getChatById(chatId) {
-  return Chat.findById(chatId);
+  return chatRepository.findChatById(chatId);
 }
 
 /**
  * Get chats by user ID
  */
 export async function getChatsByUserId(userId) {
-  return Chat.find({ userId }).sort({ updatedAt: -1 });
+  return chatRepository.findChatsByUserId(userId);
 }
 
 /**
  * Update chat title
  */
 export async function updateChatTitle(chatId, title) {
-  return Chat.findByIdAndUpdate(chatId, { title }, { new: true });
+  return chatRepository.updateChatById(chatId, { title });
 }
 
 /**
  * Update chat timestamp
  */
 export async function touchChat(chatId) {
-  return Chat.findByIdAndUpdate(chatId, { updatedAt: new Date() });
+  return chatRepository.updateChatById(chatId, { updatedAt: new Date() });
 }
 
 /**
  * Delete chat and its messages
  */
 export async function deleteChat(chatId, userId) {
-  const chat = await Chat.findOne({ _id: chatId, userId });
+  const chat = await chatRepository.findOneChat({ _id: chatId, userId });
   if (!chat) return null;
   
-  await Message.deleteMany({ chatId });
-  await Chat.findByIdAndDelete(chatId);
+  await chatRepository.deleteMessages({ chatId });
+  await chatRepository.deleteChatById(chatId);
   return chat;
 }
 
@@ -60,21 +59,24 @@ export async function createMessage(chatId, role, content, toolCalls = null, too
   if (toolCallId) messageData.tool_call_id = toolCallId;
   if (location) messageData.location = location;
   
-  const message = new Message(messageData);
-  return message.save();
+  return chatRepository.createMessage(messageData);
 }
 
 /**
  * Get latest location from chat messages
  */
 export async function getLatestLocationFromChat(chatId) {
-  const message = await Message.findOne({
-    chatId,
-    location: { $ne: null },
-  })
-    .sort({ createdAt: -1 })
-    .select('location')
-    .lean();
+  const message = await chatRepository.findOneMessage(
+    {
+      chatId,
+      location: { $ne: null },
+    },
+    {
+      sort: { createdAt: -1 },
+      select: 'location',
+      lean: true,
+    }
+  );
 
   return message?.location || null;
 }
@@ -83,26 +85,36 @@ export async function getLatestLocationFromChat(chatId) {
  * Get messages for chat
  */
 export async function getMessagesByChatId(chatId) {
-  return Message.find({ chatId }).sort({ createdAt: 1 });
+  return chatRepository.findMessagesByChatId(chatId);
 }
 
 /**
  * Get user-facing messages only (user and assistant roles)
  */
 export async function getUserFacingMessages(chatId) {
-  return Message.find({ 
-    chatId, 
-    role: { $in: ['user', 'assistant'] } 
-  })
-    .sort({ createdAt: 1 })
-    .select('role content createdAt');
+  return chatRepository.findMessages(
+    { 
+      chatId, 
+      role: { $in: ['user', 'assistant'] } 
+    },
+    {
+      sort: { createdAt: 1 },
+      select: 'role content createdAt',
+    }
+  );
 }
 
 /**
  * Build message history for AI (including tool messages)
  */
 export async function buildAIMessageHistory(chatId) {
-  const messages = await Message.find({ chatId }).sort({ createdAt: 1 }).lean();
+  const messages = await chatRepository.findMessages(
+    { chatId },
+    {
+      sort: { createdAt: 1 },
+      lean: true,
+    }
+  );
   
   let detectedBmcId = null;
   
